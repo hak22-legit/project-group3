@@ -1,0 +1,57 @@
+{
+  "entries": [
+    {
+      "director": "",
+      "genre": "sfdkf",
+      "id": 1,
+      "imdbRating": "",
+      "notes": "sajdg",
+      "plot": "",
+      "rating": 6.0,
+      "status": "pending",
+      "title": "jfsak",
+      "type": "movie",
+      "year": 2000
+    },
+    {
+      "director": "",
+      "genre": "fjska",
+      "id": 2,
+      "imdbRating": "",
+      "notes": "8",
+      "plot": "",
+      "rating": 7.0,
+      "status": "done",
+      "title": "fsjdak",
+      "type": "movie",
+      "year": 2020
+    },
+    {
+      "director": "Zack Snyder",
+      "genre": "Action, Adventure, Sci-Fi",
+      "id": 3,
+      "imdbRating": "6.4",
+      "notes": "laor merl",
+      "plot": "Batman is manipulated by Lex Luthor to fear Superman. Superman´s existence is meanwhile dividing the world and he is framed for murder during an international crisis. The heroes clash and force the neutral Wonder Woman to reemerge.",
+      "rating": 7.0,
+      "status": "done",
+      "title": "Batman v Superman: Dawn of Justice",
+      "type": "movie",
+      "year": 2016
+    },
+    {
+      "director": "",
+      "genre": "fjkd",
+      "id": 4,
+      "imdbRating": "",
+      "notes": "djfkd",
+      "plot": "",
+      "rating": 7.0,
+      "status": "pending",
+      "title": "oggy",
+      "type": "movie",
+      "year": 2000
+    }
+  ],
+  "nextId": 5
+}
