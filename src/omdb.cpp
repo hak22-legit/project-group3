@@ -3,7 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <tabulate/tabulate.hpp> 
-
+#define RESET   "\033[0m"
+#define CYAN    "\033[36m"
 #ifdef HTTPLIB_AVAILABLE
 #include "httplib.h"
 
@@ -14,6 +15,8 @@ struct SearchResult {
     std::string title;
     std::string year;
     std::string type;
+    std::string genre;
+    std::string director;
 };
 
 static std::optional<Entry> fetchByImdbID(httplib::Client& cli, const char* key, const std::string& imdbID) {
@@ -109,6 +112,18 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
     resultTable.column(3).format().width(10);
     resultTable.row(0).format().font_style({tabulate::FontStyle::bold});
 
+    for (size_t i = 1; i < resultTable.size(); i++) {
+    if (resultTable[i][0].get_text() == "0") {
+        resultTable[i][0].format().font_color(tabulate::Color::red);
+        resultTable[i][1].format().font_color(tabulate::Color::red);
+    } else {
+        resultTable[i][0].format().font_color(tabulate::Color::cyan);
+        resultTable[i][1].format().font_color(tabulate::Color::cyan);
+        resultTable[i][2].format().font_color(tabulate::Color::yellow);
+        resultTable[i][3].format().font_color(tabulate::Color::green);
+    }
+}
+
     std::cout << "\n" << resultTable << "\n\n";
 
     int pick = -1;
@@ -123,7 +138,28 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
 
     if (pick == 0) return std::nullopt;
 
-    std::cout << "Fetching details...\n";
-    return fetchByImdbID(cli, key, results[pick - 1].imdbID);
+    std::cout << "\n" << CYAN << "Fetching details..." << RESET << "\n\n";
+    auto entry = fetchByImdbID(cli, key, results[pick - 1].imdbID);
+    if (entry) {
+    tabulate::Table preview;
+    preview.add_row({"Field", "Value"});
+    preview.add_row({"Title",    entry->title});
+    preview.add_row({"Year",     entry->year > 0 ? std::to_string(entry->year) : "-"});
+    preview.add_row({"Genre",    entry->genre.empty()    ? "-" : entry->genre});
+    preview.add_row({"Director", entry->director.empty() ? "-" : entry->director});
+    preview.add_row({"IMDb",     entry->imdbRating.empty() ? "-" : entry->imdbRating});
+    preview.add_row({"Plot",     entry->plot.empty()     ? "-" : entry->plot});
+    preview.column(0).format().width(12);
+    preview.column(1).format().width(50);
+    preview.row(0).format().font_style({tabulate::FontStyle::bold});
+    preview.row(1).format().font_color(tabulate::Color::cyan);
+    preview.row(2).format().font_color(tabulate::Color::yellow);
+    preview.row(3).format().font_color(tabulate::Color::green);
+    preview.row(4).format().font_color(tabulate::Color::magenta);
+    preview.row(5).format().font_color(tabulate::Color::yellow);
+    preview.row(6).format().font_color(tabulate::Color::white);
+    std::cout << preview << "\n\n";
+}
+return entry;
 #endif
 }

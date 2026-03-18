@@ -6,6 +6,10 @@
 #include "omdb.hpp"
 #include <iostream>
 #include <algorithm>
+#include <map>
+#include <limits>
+#include <chrono>
+#include <thread>
 #include <tabulate/tabulate.hpp>
 #ifdef _WIN32
 #include <windows.h>
@@ -25,6 +29,80 @@
 #define BG_BLUE     "\033[44m"
 #define BG_GREY     "\033[100m"
 // ────────────────────────────────────────────────────────────────────────────
+
+static void printGoodbye() {
+    std::cout << "\n\n";
+    std::cout << RED << BOLD;
+    std::cout << "   ██████╗  ██████╗  ██████╗ ██████╗ ██████╗ ██╗   ██╗███████╗██╗\n";
+    std::cout << "  ██╔════╝ ██╔═══██╗██╔═══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝██╔════╝██║\n";
+    std::cout << "  ██║  ███╗██║   ██║██║   ██║██║  ██║██████╔╝ ╚████╔╝ █████╗  ██║\n";
+    std::cout << "  ██║   ██║██║   ██║██║   ██║██║  ██║██╔══██╗  ╚██╔╝  ██╔══╝  ╚═╝\n";
+    std::cout << "  ╚██████╔╝╚██████╔╝╚██████╔╝██████╔╝██████╔╝   ██║   ███████╗██╗\n";
+    std::cout << "   ╚═════╝  ╚═════╝  ╚═════╝ ╚═════╝ ╚═════╝    ╚═╝   ╚══════╝╚═╝\n";
+    std::cout << RESET << "\n";
+    std::cout << YELLOW << BOLD;
+    std::cout << "              Thanks for using Movie catalog!\n";
+    std::cout << "                    See you next time :)\n";
+    std::cout << RESET << "\n\n";
+}
+
+static void printLoading(const std::string& msg = "Loading", int termWidth = 150) {
+    int barWidth = 40;
+    int pad = (termWidth - barWidth - 12) / 2;
+    std::string sp = std::string(pad, ' ');
+
+    std::cout << "\n" << sp << BOLD << YELLOW << msg << RESET << "\n";
+
+    for (int i = 0; i <= barWidth; i++) {
+        std::cout << "\r" << sp << CYAN << "Loading: [" << RESET;
+        std::cout << GREEN << BOLD;
+        for (int j = 0; j < i; j++) std::cout << "\xe2\x96\x88";
+        for (int j = i; j < barWidth; j++) std::cout << " ";
+        std::cout << RESET << CYAN << "] " << RESET
+                  << BOLD << (i * 100 / barWidth) << "%" << RESET
+                  << std::flush;
+        std::this_thread::sleep_for(std::chrono::milliseconds(40));
+    }
+    std::cout << "\n" << sp << GREEN << BOLD << "Done!" << RESET << "\n\n";
+}
+
+static void printCentered(const std::string& text, int termWidth = 80) {
+    int pad = (termWidth - (int)text.size()) / 2;
+    if (pad < 0) pad = 0;
+    std::cout << std::string(pad, ' ') << text << "\n";
+}
+
+static void printAnimated(const std::string& text, int delayMs = 50) {
+    for (char c : text) {
+        std::cout << c << std::flush;
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+    }
+    std::cout << "\n";
+}
+
+static void printTitle() {
+    int w = 80;
+    auto center = [&](const std::string& s, int w = 154) {
+        int pad = (w - (int)s.size()) / 2;
+        if (pad < 0) pad = 0;
+        std::cout << std::string(pad, ' ') << s << "\n";
+    };
+
+    std::cout << GREEN << BOLD;
+    center("################################################################################");
+    center("#                                                                              #");
+    center("#                        MEDIA CATALOG MANAGER                                 #");
+    center("#                                                                              #");
+    center("#                     Your personal movie tracker                              #");
+    center("#                                                                              #");
+    center("################################################################################");
+    std::cout << RESET << "\n";
+    std::cout << GREEN;
+    int pad = (196 - 50) / 2;
+    std::cout << std::string(pad, ' ');
+    printAnimated("Developed by Pre-Gen6 Group3", 60);
+    std::cout << RESET << "\n";
+}
 
 static void printDivider(int width = 44) {
     std::cout << DIM << std::string(width, '-') << RESET << "\n";
@@ -53,31 +131,20 @@ static SortField askSort() {
     return s == 1 ? SortField::Title : s == 2 ? SortField::Year : SortField::Rating;
 }
 
+// ─── List ────────────────────────────────────────────────────────────────────
 static void doList(const Catalog& cat) {
-    printHeader("📋", "CATALOG LIST");
+    printHeader(">>", "CATALOG LIST");
     printTable(queryEntries(cat, askSort(), {}), cat.username);
 }
 
-static void doSearch(const Catalog& cat) {
-    printHeader("🔍", "SEARCH CATALOG");
-    std::cout << DIM << "Leave blank to skip a filter.\n\n" << RESET;
-    FilterOptions opts;
-    opts.keyword   = inputLine("Title keyword : ", true);
-    opts.genre     = inputLine("Genre         : ", true);
-    opts.minRating = inputFloat("Min rating    : ", 0.0f, 10.0f);
-    printTable(queryEntries(cat, askSort(), opts), cat.username + " (filtered)");
-}
-
+// ─── View ────────────────────────────────────────────────────────────────────
 static void doView(Catalog& cat) {
     printHeader("VIEW", "VIEW ENTRY");
     int id = inputInt("Entry ID: ", 1, 99999);
     Entry* ep = nullptr;
     for (auto& e : cat.entries)
         if (e.id == id) { ep = &e; break; }
-    if (!ep) {
-        std::cout << RED << "Entry not found.\n" << RESET;
-        return;
-    }
+    if (!ep) { std::cout << RED << "Entry not found.\n" << RESET; return; }
     printEntry(*ep);
     if (ep->type == MediaType::Movie && inputYN("Fetch OMDb data for this entry?")) {
         auto res = fetchOMDb(ep->title, ep->year);
@@ -94,6 +161,7 @@ static void doView(Catalog& cat) {
     }
 }
 
+// ─── Add ─────────────────────────────────────────────────────────────────────
 static void doAdd(Catalog& cat) {
     printHeader("+", "ADD NEW ENTRY");
 
@@ -143,6 +211,7 @@ static void doAdd(Catalog& cat) {
     std::cout << summary << "\n\n";
 }
 
+// ─── Edit ────────────────────────────────────────────────────────────────────
 static void doEdit(Catalog& cat) {
     printHeader("EDIT", "EDIT ENTRY");
     int id = inputInt("Entry ID to edit: ", 1, 99999);
@@ -179,6 +248,7 @@ static void doEdit(Catalog& cat) {
         std::cout << "\n" << RED << "Update failed.\n" << RESET;
 }
 
+// ─── Delete ──────────────────────────────────────────────────────────────────
 static void doDelete(Catalog& cat) {
     printHeader("DELETE", "DELETE ENTRY");
     int id = inputInt("Entry ID to delete: ", 1, 99999);
@@ -189,12 +259,7 @@ static void doDelete(Catalog& cat) {
     }
 }
 
-static void doToggle(Catalog& cat) {
-    int id = inputInt("Entry ID to toggle status: ", 1, 99999);
-    if (toggleStatus(cat, id)) std::cout << GREEN << "Status updated.\n" << RESET;
-    else                        std::cout << RED   << "Entry not found.\n" << RESET;
-}
-
+// ─── OMDb ────────────────────────────────────────────────────────────────────
 static void doOMDb(Catalog& cat) {
     printHeader("OMDb", "FETCH FROM OMDb");
 
@@ -215,22 +280,6 @@ static void doOMDb(Catalog& cat) {
 
     auto res = fetchOMDb(title, year);
     if (!res) { std::cout << RED << "No results found.\n" << RESET; return; }
-
-    std::cout << BOLD << GREEN << "RESULT FOUND" << RESET << "\n\n";
-
-    tabulate::Table details;
-    details.add_row({"Field", "Value"});
-    details.add_row({"Title",    res->title});
-    details.add_row({"Type",     "Movie"});
-    details.add_row({"Genre",    res->genre.empty()      ? "-" : res->genre});
-    details.add_row({"Year",     res->year > 0 ? std::to_string(res->year) : "-"});
-    details.add_row({"Director", res->director.empty()   ? "-" : res->director});
-    details.add_row({"IMDb",     res->imdbRating.empty() ? "-" : res->imdbRating});
-    details.add_row({"Plot",     res->plot.empty()       ? "-" : res->plot});
-    details.column(0).format().width(14);
-    details.column(1).format().width(50);
-    details.row(0).format().font_style({tabulate::FontStyle::bold});
-    std::cout << details << "\n\n";
 
     if (inputYN("Add to catalog?")) {
         Entry e  = *res;
@@ -255,134 +304,302 @@ static void doOMDb(Catalog& cat) {
         summary.row(0).format().font_style({tabulate::FontStyle::bold});
         std::cout << summary << "\n\n";
     }
+    std::cout << YELLOW << BOLD << "  Press Enter to go back to main menu..." << RESET;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cout << "\n";
 }
 
-// ─── Main Menu ───────────────────────────────────────────────────────────────
+// ─── Stats ───────────────────────────────────────────────────────────────────
+static void doStats(const Catalog& cat) {
+    printHeader(">>", "CATALOG STATISTICS");
+
+    if (cat.entries.empty()) {
+        std::cout << RED << "  No entries in catalog yet.\n" << RESET;
+        return;
+    }
+
+    // ✅ New — requires only 1 enter
+    auto pressEnter = [](const std::string& msg = "  Press Enter to continue...") {
+    std::cout << YELLOW << msg << RESET;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cout << "\n";
+    };
+
+    int total       = (int)cat.entries.size();
+    int watched     = 0;
+    int movies      = 0;
+    float sumRating = 0.0f;
+    float maxRating = 0.0f;
+    std::string topTitle;
+
+    for (const auto& e : cat.entries) {
+        if (e.status == WatchStatus::Done) watched++;
+        if (e.type   == MediaType::Movie)  movies++;
+        sumRating += e.rating;
+        if (e.rating > maxRating) { maxRating = e.rating; topTitle = e.title; }
+    }
+    float avgRating = sumRating / total;
+
+    // ── 1. Overview ──────────────────────────────────
+    std::cout << BOLD << YELLOW << "  1. Overview\n" << RESET;
+    printDivider(44);
+
+    tabulate::Table overview;
+    overview.add_row({"Stat",           "Value"});
+    overview.add_row({"Total Entries",  std::to_string(total)});
+    overview.add_row({"Movies",         std::to_string(movies)});
+    overview.add_row({"Watched / Read", std::to_string(watched)});
+    overview.add_row({"Average Rating", std::to_string(avgRating).substr(0,4) + " / 10"});
+    overview.add_row({"Highest Rated",  topTitle + " (" + std::to_string(maxRating).substr(0,3) + ")"});
+    overview.column(0).format().width(18);
+    overview.column(1).format().width(30);
+    overview.row(0).format().font_style({tabulate::FontStyle::bold});
+    std::cout << "\n" << overview << "\n\n";
+    pressEnter();
+
+    // ── 2. Watch Progress ────────────────────────────
+    std::cout << BOLD << YELLOW << "  2. Watch Progress\n" << RESET;
+    printDivider(44);
+
+    int pct    = (watched * 100) / total;
+    int filled = (pct * 30) / 100;
+    std::string bar;
+    for (int i = 0; i < filled; i++)  bar += "\xe2\x96\x88";
+    for (int i = filled; i < 30; i++) bar += "\xe2\x96\x91";
+
+    std::cout << "\n  " << GREEN << bar   << RESET
+              << "  "   << BOLD  << pct   << "%" << RESET
+              << "  ("  << GREEN << watched << RESET
+              << "/"    << total << " watched)\n\n";
+    pressEnter();
+
+    // ── 3. Top 5 Rated ───────────────────────────────
+    std::cout << BOLD << YELLOW << "  3. Top 5 Rated\n" << RESET;
+    printDivider(44);
+
+    auto sorted = cat.entries;
+    std::sort(sorted.begin(), sorted.end(), [](const Entry& a, const Entry& b){
+        return a.rating > b.rating;
+    });
+
+    tabulate::Table top;
+    top.add_row({"Rank", "Title", "Type", "Rating"});
+    top.row(0).format().font_style({tabulate::FontStyle::bold});
+    top.column(0).format().width(6);
+    top.column(1).format().width(26);
+    top.column(2).format().width(8);
+    top.column(3).format().width(8);
+
+    int limit = std::min((int)sorted.size(), 5);
+    for (int i = 0; i < limit; i++) {
+        auto& e = sorted[i];
+        top.add_row({
+            "#" + std::to_string(i + 1),
+            e.title,
+            e.type == MediaType::Movie ? "Movie" : "Book",
+            std::to_string(e.rating).substr(0, 3) + "/10"
+        });
+    }
+    std::cout << "\n" << top << "\n\n";
+    pressEnter();
+
+    // ── 4. Rating Distribution ───────────────────────
+    std::cout << BOLD << YELLOW << "  4. Rating Distribution\n" << RESET;
+    printDivider(44);
+
+    int cnt1=0, cnt2=0, cnt3=0, cnt4=0;
+    for (const auto& e : cat.entries) {
+        if      (e.rating >= 9.0f) cnt4++;
+        else if (e.rating >= 7.0f) cnt3++;
+        else if (e.rating >= 5.0f) cnt2++;
+        else                       cnt1++;
+    }
+
+    auto printBar = [](const std::string& label, int cnt, const std::string& color) {
+        std::string chart;
+        for (int i = 0; i < cnt * 4; i++) chart += "\xe2\x96\x88";
+        std::cout << "  " << color << label << RESET
+                  << "  |" << color << chart << RESET
+                  << "  " << cnt << "\n";
+    };
+
+    std::cout << "\n";
+    printBar("1-4  (Low)  ", cnt1, RED);
+    printBar("5-6  (Ok)   ", cnt2, YELLOW);
+    printBar("7-8  (Good) ", cnt3, CYAN);
+    printBar("9-10 (Great)", cnt4, GREEN);
+    std::cout << "\n";
+    pressEnter("  Press Enter to go back...");
+}
+
+// ─── Menu ────────────────────────────────────────────────────────────────────
 static void printMenu(const std::string& username) {
     std::cout << "\n";
-    std::cout << BOLD << BG_BLUE << WHITE
-              << "  MEDIA CATALOG MANAGER  "
-              << RESET << "\n";
-    std::cout << CYAN << "  Logged in as: " << BOLD << WHITE << username << RESET << "\n\n";
+    std::cout << MAGENTA << BOLD;
+    std::cout << "  ███╗   ███╗ █████╗ ██╗███╗   ██╗    ███╗   ███╗███████╗███╗   ██╗██╗   ██╗\n";
+    std::cout << "  ████╗ ████║██╔══██╗██║████╗  ██║    ████╗ ████║██╔════╝████╗  ██║██║   ██║\n";
+    std::cout << "  ██╔████╔██║███████║██║██╔██╗ ██║    ██╔████╔██║█████╗  ██╔██╗ ██║██║   ██║\n";
+    std::cout << "  ██║╚██╔╝██║██╔══██║██║██║╚██╗██║    ██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║   ██║\n";
+    std::cout << "  ██║ ╚═╝ ██║██║  ██║██║██║ ╚████║    ██║ ╚═╝ ██║███████╗██║ ╚████║╚██████╔╝\n";
+    std::cout << "  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝\n";
+    std::cout << RESET << "\n";
 
-    tabulate::Table menu;
-    menu.add_row({"Key", "Option", "Description"});
-    menu.add_row({"1", "List",   "Browse your catalog"});
-    menu.add_row({"2", "View",   "See entry details"});
-    menu.add_row({"3", "Add",    "Add new entry"});
-    menu.add_row({"4", "Edit",   "Edit an entry"});
-    menu.add_row({"5", "Delete", "Remove an entry"});
-    menu.add_row({"6", "OMDb",   "Fetch from OMDb"});
-    menu.add_row({"7", "Logout", "Switch account"});
-    menu.add_row({"0", "Quit",   "Exit program"});
+    int menuPad = 10;
+    std::string sp = std::string(menuPad, ' ');
 
-    menu.column(0).format().width(6);
-    menu.column(1).format().width(12);
-    menu.column(2).format().width(24);
-    menu.row(0).format()
-        .font_style({tabulate::FontStyle::bold})
-        .font_color(tabulate::Color::yellow);
+    auto hline = [&](char fill) {
+        std::cout << MAGENTA << sp << "+"
+                  << std::string(8,  fill) << "+"
+                  << std::string(14, fill) << "+"
+                  << std::string(26, fill) << "+"
+                  << RESET << "\n";
+    };
 
-    // Key colors
-    menu.row(1).cell(0).format().font_color(tabulate::Color::cyan);
-    menu.row(2).cell(0).format().font_color(tabulate::Color::cyan);
-    menu.row(3).cell(0).format().font_color(tabulate::Color::cyan);
-    menu.row(4).cell(0).format().font_color(tabulate::Color::cyan);
-    menu.row(5).cell(0).format().font_color(tabulate::Color::cyan);
-    menu.row(6).cell(0).format().font_color(tabulate::Color::magenta);
-    menu.row(7).cell(0).format().font_color(tabulate::Color::green);
-    menu.row(8).cell(0).format().font_color(tabulate::Color::red);
+    auto row = [&](const std::string& k, const std::string& o,
+                   const std::string& d, const std::string& color = "") {
+        std::string pk = k + std::string(6  - (int)k.size(), ' ');
+        std::string po = o + std::string(12 - (int)o.size(), ' ');
+        std::string pd = d + std::string(24 - (int)d.size(), ' ');
+        std::cout << MAGENTA << sp << "|" << RESET
+                  << " " << color << BOLD << pk << RESET << " "
+                  << MAGENTA << "|" << RESET
+                  << " " << color << po << RESET << " "
+                  << MAGENTA << "|" << RESET
+                  << " " << color << pd << RESET << " "
+                  << MAGENTA << "|" << RESET << "\n";
+    };
 
-    // Option colors
-    menu.row(1).cell(1).format().font_color(tabulate::Color::cyan);
-    menu.row(2).cell(1).format().font_color(tabulate::Color::cyan);
-    menu.row(3).cell(1).format().font_color(tabulate::Color::cyan);
-    menu.row(4).cell(1).format().font_color(tabulate::Color::cyan);
-    menu.row(5).cell(1).format().font_color(tabulate::Color::cyan);
-    menu.row(6).cell(1).format().font_color(tabulate::Color::magenta);
-    menu.row(7).cell(1).format().font_color(tabulate::Color::green);
-    menu.row(8).cell(1).format().font_color(tabulate::Color::red);
+    hline('=');
+    row("Key", "Option", "Description", WHITE);
+    hline('=');
+    row("1", "List",   "Browse your catalog",  CYAN);
+    hline('-');
+    row("2", "View",   "See entry details",    CYAN);
+    hline('-');
+    row("3", "Add",    "Add new entry",        CYAN);
+    hline('-');
+    row("4", "Edit",   "Edit an entry",        CYAN);
+    hline('-');
+    row("5", "Delete", "Remove an entry",      CYAN);
+    hline('-');
+    row("6", "OMDb",   "Fetch from OMDb",      YELLOW);
+    hline('-');
+    row("7", "Stats",  "View statistics",      CYAN);
+    hline('-');
+    row("8", "Logout", "Switch account",       GREEN);
+    hline('-');
+    row("0", "Quit",   "Exit program",         RED);
+    hline('=');
 
-    // Description colors
-    menu.row(1).cell(2).format().font_color(tabulate::Color::white);
-    menu.row(2).cell(2).format().font_color(tabulate::Color::white);
-    menu.row(3).cell(2).format().font_color(tabulate::Color::white);
-    menu.row(4).cell(2).format().font_color(tabulate::Color::white);
-    menu.row(5).cell(2).format().font_color(tabulate::Color::white);
-    menu.row(6).cell(2).format().font_color(tabulate::Color::white);
-    menu.row(7).cell(2).format().font_color(tabulate::Color::white);
-    menu.row(8).cell(2).format().font_color(tabulate::Color::white);
-
-    std::cout << menu << "\n\n";
+    std::cout << "\n";
 }
 
-// ─── Auth Screen (no tabulate, emojis + ANSI colors) ─────────────────────────
+// ─── Auth Screen ─────────────────────────────────────────────────────────────
 static std::string authScreen() {
     while (true) {
-        std::cout << "\n";
-        printDivider(44);
-        std::cout << BOLD << BG_BLUE << YELLOW
-                  << "   🗂️  MEDIA CATALOG MANAGER   "
-                  << RESET << "\n";
-        std::cout << BG_BLUE << WHITE
-                  << "   📽️  Your personal movie & book tracker   "
-                  << RESET << "\n";
-        printDivider(44);
+        std::cout << "\n\n\n";
+
+        // ── Welcome ASCII centered ─────────────────────
+        std::cout << MAGENTA << BOLD;
+        printCentered("███╗   ███╗ ██████╗ ██╗   ██╗██╗███████╗      ██████╗ █████╗ ████████╗ █████╗ ██╗      ██████╗  ██████╗");
+        printCentered("████╗ ████║██╔═══██╗██║   ██║██║██╔════╝     ██╔════╝██╔══██╗╚══██╔══╝██╔══██╗██║     ██╔═══██╗██╔════╝");
+        printCentered("██╔████╔██║██║   ██║██║   ██║██║█████╗       ██║     ███████║   ██║   ███████║██║     ██║   ██║██║  ███╗");
+        printCentered("██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██║██╔══╝       ██║     ██╔══██║   ██║   ██╔══██║██║     ██║   ██║██║   ██║");
+        printCentered("██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ██║███████╗     ╚██████╗██║  ██║   ██║   ██║  ██║███████╗╚██████╔╝╚██████╔╝");
+        printCentered("╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚═╝╚══════╝      ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝");
+        std::cout << RESET << "\n";
+
+
+        // ── Auth menu centered ────────────────────────
+        int pad = 50;
+        std::string sp = std::string(pad, ' ');
+
+        std::cout << MAGENTA;
+        std::cout << sp << "╭───────────────────────────────╮\n";
+        std::cout << sp << "│             Option            │\n";
+        std::cout << sp << "├────────┬──────────────────────┤\n";
+        std::cout << MAGENTA;
+        std::cout << sp << "│   1    │        Login         │\n";
+        std::cout << sp << "├────────┼──────────────────────┤\n";
+        std::cout << sp << "│   2    │       Register       │\n";
+        std::cout << MAGENTA;
+        std::cout << sp << "├────────┼──────────────────────┤\n";
+        std::cout << MAGENTA;
+        std::cout << sp << "│   0    │         Quit         │\n";
+        std::cout << MAGENTA;
+        std::cout << sp << "╰────────┴──────────────────────╯\n";
         std::cout << "\n";
 
-        // Menu options — plain colored lines, no tabulate
-        std::cout << BOLD << YELLOW << "  [ Key ]  Option\n" << RESET;
-        printDivider(24);
-        std::cout << "  [" << CYAN  << BOLD << "  1  " << RESET << "]  " << CYAN  << BOLD << "🔑 Login"    << RESET << "\n";
-        std::cout << "  [" << CYAN  << BOLD << "  2  " << RESET << "]  " << CYAN  << BOLD << "📝 Register" << RESET << "\n";
-        std::cout << "  [" << RED   << BOLD << "  0  " << RESET << "]  " << RED   << BOLD << "❌ Quit"     << RESET << "\n";
-        printDivider(24);
+        std::cout << sp << ">> Choose: ";
+        std::string choiceStr;
+        std::getline(std::cin, choiceStr);
+        int choice = -1;
+        try { choice = std::stoi(choiceStr); } catch (...) { choice = -1; }
+        if (choice < 0 || choice > 2) {
+        std::cout << "\n" << sp << RED << BOLD
+              << "[\xe2\x9c\x96] Invalid option! Please choose 0, 1, or 2." << RESET << "\n\n";
+    continue;
+}
+
+if (choice == 0) {
+    printGoodbye();
+    exit(0);
+}
         std::cout << "\n";
 
-        int choice = inputInt("Choice: ", 0, 2);
-        if (choice == 0) { std::cout << "\n" << RED << BOLD << "Goodbye! ❌" << RESET << "\n"; exit(0); }
+        // ── Login / Register form centered ────────────
+        std::string formTitle = (choice == 1) ? "You choose login" : "You choose register";
+        std::cout << sp << BOLD << CYAN << "── " << formTitle << " ──" << RESET << "\n\n";
 
-        std::cout << "\n";
+        std::cout << GREEN;
+        std::cout << sp << "╭────────────────┬────────────────────────────╮\n";
+        std::cout << GREEN;
+        std::cout << sp << "│ Username       │  Enter your username       │\n";
+        std::cout << sp << "├────────────────┼────────────────────────────┤\n";
+        std::cout << sp << "│ Password       │  Enter your password       │\n";
+        std::cout << GREEN;
+        std::cout << sp << "╰────────────────┴────────────────────────────╯\n\n";
 
-        // Login form — plain colored lines, no tabulate
-        std::cout << BOLD << YELLOW << "  Field          Input\n" << RESET;
-        printDivider(44);
-        std::cout << "  " << MAGENTA << BOLD << "👤 Username  " << RESET << WHITE << "  Enter your username\n" << RESET;
-        std::cout << "  " << MAGENTA << BOLD << "🔒 Password  " << RESET << WHITE << "  Enter your password\n" << RESET;
-        printDivider(44);
-        std::cout << "\n";
-
-        std::string user = inputLine("👤 Username : ");
-        std::string pass = inputLine("🔒 Password : ");
+        std::cout << sp << "Username : ";
+        std::string user;
+        std::getline(std::cin, user);
+        std::cout << sp << "Password : ";
+        std::string pass;
+        std::getline(std::cin, pass);
 
         if (choice == 1) {
             auto res = loginUser(user, pass);
             if (res) {
-                std::cout << "\n✅ " << BOLD << GREEN
-                          << "Login successful! Welcome back, "
-                          << CYAN << user << GREEN << "!"
-                          << RESET << "\n\n";
+                printLoading("Logging in");
+                std::cout << "\n" << sp << BOLD << GREEN
+                    << "[\xe2\x9c\x94] Login successful! Welcome back, "
+                    << CYAN << user << GREEN << "!" << RESET << "\n\n";
                 return *res;
-            }
-            std::cout << "\n❌ " << RED << BOLD
-                      << "Invalid username or password. Try again."
-                      << RESET << "\n\n";
+}
+            std::cout << "\n" << sp << RED << BOLD
+                      << "[\xe2\x9c\x96] Invalid username or password." << RESET << "\n\n";
+                        std::cout << sp << YELLOW << "Press Enter to continue..." << RESET;
+                        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        std::cout << "\n";
         } else {
             auto res = registerUser(user, pass);
             if (res) {
-                std::cout << "\n✅ " << BOLD << GREEN
-                          << "Account created! Welcome, "
-                          << CYAN << user << GREEN << "!"
-                          << RESET << "\n\n";
+                printLoading("Setting up account");
+                std::cout << "\n" << sp << BOLD << GREEN
+                          << "[\xe2\x9c\x94] Account created! Welcome, "
+                          << CYAN << user << GREEN << "!" << RESET << "\n\n";
                 return *res;
-            }
-            std::cout << "\n❌ " << RED << BOLD
-                      << "Username already taken or invalid. Try again."
-                      << RESET << "\n\n";
+            }           
+            std::cout << "\n" << sp << RED << BOLD
+                      << "[!!] Username already taken." << RESET << "\n\n";
+                        std::cout << sp << YELLOW << "Press Enter to continue..." << RESET;
+                        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        std::cout << "\n";
         }
     }
 }
 
+// ─── Main ────────────────────────────────────────────────────────────────────
 int main() {
 #ifdef _WIN32
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -394,6 +611,12 @@ int main() {
     SetConsoleCP(CP_UTF8);
 #endif
 
+    printTitle();
+
+    std::cout << YELLOW << "\n" << RESET;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cout << "\n";
+
     while (true) {
         std::string username = authScreen();
         Catalog cat = loadCatalog(username);
@@ -401,16 +624,26 @@ int main() {
 
         while (running) {
             printMenu(username);
-            int choice = inputInt("Choice: ", 0, 7);
+            std::cout << CYAN << BOLD << "  >> " << RESET;
+            std::string choiceStr;
+            std::getline(std::cin, choiceStr);
+            int choice = -1;
+            try { choice = std::stoi(choiceStr); } catch (...) {}
+            if (choice < 0 || choice > 8) {
+                std::cout << RED << BOLD << "  Please enter 0-8.\n" << RESET;
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                continue;
+            }
             switch (choice) {
-                case 1: doList(cat);         break;
-                case 2: doView(cat);         break;
-                case 3: doAdd(cat);          break;
-                case 4: doEdit(cat);         break;
-                case 5: doDelete(cat);       break;
-                case 6: doOMDb(cat);         break;
-                case 7: running = false;     break;
-                case 0: std::cout << "\nGoodbye!\n"; return 0;
+                case 1: doList(cat);      break;
+                case 2: doView(cat);      break;
+                case 3: doAdd(cat);       break;
+                case 4: doEdit(cat);      break;
+                case 5: doDelete(cat);    break;
+                case 6: doOMDb(cat);      break;
+                case 7: doStats(cat);     break;
+                case 8: running = false;  break;
+                case 0: printGoodbye(); return 0;
             }
         }
     }

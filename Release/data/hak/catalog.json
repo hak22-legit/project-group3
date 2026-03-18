@@ -2,36 +2,23 @@
   "entries": [
     {
       "director": "",
-      "genre": "sfdkf",
+      "genre": "dffd",
       "id": 1,
       "imdbRating": "",
       "notes": "sajdg",
       "plot": "",
       "rating": 6.0,
       "status": "pending",
-      "title": "jfsak",
+      "title": "dff",
       "type": "movie",
       "year": 2000
-    },
-    {
-      "director": "",
-      "genre": "fjska",
-      "id": 2,
-      "imdbRating": "",
-      "notes": "8",
-      "plot": "",
-      "rating": 7.0,
-      "status": "done",
-      "title": "fsjdak",
-      "type": "movie",
-      "year": 2020
     },
     {
       "director": "Zack Snyder",
       "genre": "Action, Adventure, Sci-Fi",
       "id": 3,
       "imdbRating": "6.4",
-      "notes": "laor merl",
+      "notes": "goog",
       "plot": "Batman is manipulated by Lex Luthor to fear Superman. Superman´s existence is meanwhile dividing the world and he is framed for murder during an international crisis. The heroes clash and force the neutral Wonder Woman to reemerge.",
       "rating": 7.0,
       "status": "done",
@@ -51,7 +38,72 @@
       "title": "oggy",
       "type": "movie",
       "year": 2000
+    },
+    {
+      "director": "",
+      "genre": "djf",
+      "id": 5,
+      "imdbRating": "",
+      "notes": "sjflk",
+      "plot": "",
+      "rating": 7.0,
+      "status": "done",
+      "title": "kddk",
+      "type": "movie",
+      "year": 2000
+    },
+    {
+      "director": "",
+      "genre": "fd",
+      "id": 6,
+      "imdbRating": "",
+      "notes": "6",
+      "plot": "",
+      "rating": 6.0,
+      "status": "done",
+      "title": "f",
+      "type": "movie",
+      "year": 2000
+    },
+    {
+      "director": "",
+      "genre": "fjsa",
+      "id": 7,
+      "imdbRating": "",
+      "notes": "good",
+      "plot": "",
+      "rating": 5.0,
+      "status": "pending",
+      "title": "dsjf",
+      "type": "movie",
+      "year": 2000
+    },
+    {
+      "director": "Joe Johnston",
+      "genre": "Action, Adventure, Sci-Fi",
+      "id": 8,
+      "imdbRating": "6.9",
+      "notes": "good",
+      "plot": "Steve Rogers, a rejected military soldier, transforms into Captain America after taking a dose of a \"Super-Soldier serum\". But being Captain America comes at a price as he attempts to take down a warmonger and a terrorist organiza...",
+      "rating": 5.0,
+      "status": "done",
+      "title": "Captain America: The First Avenger",
+      "type": "movie",
+      "year": 2011
+    },
+    {
+      "director": "Joe Johnston",
+      "genre": "Action, Adventure, Sci-Fi",
+      "id": 9,
+      "imdbRating": "6.9",
+      "notes": "good",
+      "plot": "Steve Rogers, a rejected military soldier, transforms into Captain America after taking a dose of a \"Super-Soldier serum\". But being Captain America comes at a price as he attempts to take down a warmonger and a terrorist organiza...",
+      "rating": 7.0,
+      "status": "done",
+      "title": "Captain America: The First Avenger",
+      "type": "movie",
+      "year": 2011
     }
   ],
-  "nextId": 5
+  "nextId": 10
 }
