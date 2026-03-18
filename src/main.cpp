@@ -12,7 +12,11 @@
 #include <thread>
 #include <tabulate/tabulate.hpp>
 #ifdef _WIN32
+#include <conio.h> 
 #include <windows.h>
+#else
+#include <termios.h>   
+#include <unistd.h>
 #endif
 
 // ─── ANSI Color Codes ───────────────────────────────────────────────────────
@@ -242,6 +246,15 @@ static void doEdit(Catalog& cat) {
     std::cout << "Notes  [" << CYAN << updated.notes  << RESET << "]: ";
     std::getline(std::cin, s); if (!s.empty()) updated.notes = s;
 
+    // ✅ let user update watch/read status
+    std::string currentStatus = updated.status == WatchStatus::Done
+        ? (updated.type == MediaType::Movie ? "Watched" : "Read")
+        : (updated.type == MediaType::Movie ? "Not Watched" : "Want to Read");
+    std::cout << "Status [" << CYAN << currentStatus << RESET << "] Change? ";
+    if (inputYN(""))
+        updated.status = inputYN(updated.type == MediaType::Movie ? "Mark as Watched?" : "Mark as Read?")
+            ? WatchStatus::Done : WatchStatus::Pending;
+
     if (editEntry(cat, id, updated))
         std::cout << "\n" << GREEN << BOLD << "Entry updated!" << RESET << "\n\n";
     else
@@ -338,7 +351,7 @@ static void doStats(const Catalog& cat) {
         sumRating += e.rating;
         if (e.rating > maxRating) { maxRating = e.rating; topTitle = e.title; }
     }
-    float avgRating = sumRating / total;
+    float avgRating = total > 0 ? sumRating / total : 0.0f;
 
     // ── 1. Overview ──────────────────────────────────
     std::cout << BOLD << YELLOW << "  1. Overview\n" << RESET;
@@ -430,6 +443,209 @@ static void doStats(const Catalog& cat) {
     printBar("9-10 (Great)", cnt4, GREEN);
     std::cout << "\n";
     pressEnter("  Press Enter to go back...");
+}
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+static void adminViewUsers() {
+    printHeader(">>", "ALL USERS");
+    auto users = getAllUsers();
+    if (users.empty()) {
+        std::cout << RED << "  No users found.\n" << RESET;
+        return;
+    }
+
+    int menuPad = 10;
+    std::string sp = std::string(menuPad, ' ');
+
+    auto hline = [&](char fill) {
+        std::cout << MAGENTA << sp << "+"
+                  << std::string(6,  fill) << "+"
+                  << std::string(20, fill) << "+"
+                  << RESET << "\n";
+    };
+
+    auto row = [&](const std::string& no, const std::string& name) {
+        std::string pno   = no   + std::string(4  - (int)no.size(),   ' ');
+        std::string pname = name + std::string(18 - (int)name.size(), ' ');
+        std::cout << MAGENTA << sp << "|" << RESET
+                  << " " << CYAN << pno   << RESET << " "
+                  << MAGENTA << "|" << RESET
+                  << " " << CYAN << pname << RESET << " "
+                  << MAGENTA << "|" << RESET << "\n";
+    };
+
+    hline('=');
+    row("No", "Username");
+    hline('=');
+    int displayNum = 1;
+    for (int i = 0; i < (int)users.size(); i++) {
+        if (users[i] == "admin") continue;           // ✅ skip admin
+        row(std::to_string(displayNum++), users[i]);
+        hline('-');
+    }
+
+    int realCount = 0;
+    for (auto& u : users)
+    if (u != "admin") realCount++;
+        std::cout << "  Total users: " << realCount << RESET << "\n\n";
+
+    std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+
+static void adminViewAllCatalogs() {
+    printHeader(">>", "ALL CATALOGS");
+    auto users = getAllUsers();
+    if (users.empty()) {
+        std::cout << RED << "  No users found.\n" << RESET;
+        return;
+    }
+
+    for (const auto& user : users) {
+        if (user == "admin") continue;
+        Catalog cat = loadCatalog(user);
+        std::cout << BOLD << YELLOW << "  User: " << CYAN << user
+                  << YELLOW << " (" << cat.entries.size() << " entries)"
+                  << RESET << "\n\n";
+        if (cat.entries.empty()) {
+            std::cout << DIM << "  No entries.\n\n" << RESET;
+        } else {
+            printTable(cat.entries, user);
+        }
+        std::cout << "\n";
+    }
+
+    std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+
+static void adminResetPassword() {
+    printHeader(">>", "RESET USER PASSWORD");
+
+    auto users = getAllUsers();
+    if (users.empty()) {
+        std::cout << RED << "  No users found.\n" << RESET;
+        return;
+    }
+
+    std::cout << CYAN << "  Available users:\n" << RESET;
+    for (int i = 0; i < (int)users.size(); i++) {
+        if (users[i] == "admin") continue;
+        std::cout << "  " << CYAN << i + 1 << ". " << users[i] << RESET << "\n";
+    }
+    std::cout << "\n";
+
+    std::string username = inputLine("  Enter username to reset: ");
+    auto it = std::find(users.begin(), users.end(), username);
+    if (it == users.end()) {
+        std::cout << RED << BOLD << "  User not found.\n" << RESET;
+        return;
+    }
+
+    std::string newPass = inputLine("  Enter new password: ");
+    if (resetPassword(username, newPass)) {
+        std::cout << "\n" << GREEN << BOLD
+                  << "  [\xe2\x9c\x94] Password reset successfully for " << username
+                  << RESET << "\n\n";
+    } else {
+        std::cout << RED << BOLD << "  [\xe2\x9c\x96] Failed to reset password.\n" << RESET;
+    }
+
+    std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+static void adminDeleteUser() {
+    printHeader(">>", "DELETE USER ACCOUNT");
+
+    auto users = getAllUsers();
+    if (users.empty()) {
+        std::cout << RED << "  No users found.\n" << RESET;
+        return;
+    }
+
+    std::cout << CYAN << "  Available users:\n" << RESET;
+    for (int i = 0; i < (int)users.size(); i++) {
+        if (users[i] == "admin") continue;
+        std::cout << "  " << CYAN << i + 1 << ". " << users[i] << RESET << "\n";
+    }
+    std::cout << "\n";
+
+    std::string username = inputLine("  Enter username to delete: ");
+
+    if (username == "admin") {
+        std::cout << RED << BOLD << "  Cannot delete admin account.\n" << RESET;
+        return;
+    }
+
+    auto it = std::find(users.begin(), users.end(), username);
+    if (it == users.end()) {
+        std::cout << RED << BOLD << "  User not found.\n" << RESET;
+        return;
+    }
+
+    if (inputYN("  Are you sure you want to delete " + username + "?")) {
+        if (deleteUser(username)) {
+            std::cout << "\n" << GREEN << BOLD
+                      << "  [\xe2\x9c\x94] User " << username << " deleted successfully."
+                      << RESET << "\n\n";
+        } else {
+            std::cout << RED << BOLD << "  [\xe2\x9c\x96] Failed to delete user.\n" << RESET;
+        }
+    } else {
+        std::cout << YELLOW << "  Cancelled.\n" << RESET;
+    }
+
+    std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+
+static void printAdminMenu() {
+    std::cout << "\n";
+    std::cout << RED << BOLD;
+    std::cout << "  █████╗ ██████╗ ███╗   ███╗██╗███╗   ██╗\n";
+    std::cout << " ██╔══██╗██╔══██╗████╗ ████║██║████╗  ██║\n";
+    std::cout << " ███████║██║  ██║██╔████╔██║██║██╔██╗ ██║\n";
+    std::cout << " ██╔══██║██║  ██║██║╚██╔╝██║██║██║╚██╗██║\n";
+    std::cout << " ██║  ██║██████╔╝██║ ╚═╝ ██║██║██║ ╚████║\n";
+    std::cout << " ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝\n";
+    std::cout << RESET << "\n";
+
+    int menuPad = 10;
+    std::string sp = std::string(menuPad, ' ');
+
+    auto hline = [&](char fill) {
+        std::cout << MAGENTA << sp << "+"
+                  << std::string(8,  fill) << "+"
+                  << std::string(30, fill) << "+"
+                  << RESET << "\n";
+    };
+
+    auto row = [&](const std::string& k, const std::string& o,
+                   const std::string& color = "") {
+        std::string pk = k + std::string(6  - (int)k.size(), ' ');
+        std::string po = o + std::string(28 - (int)o.size(), ' ');
+        std::cout << MAGENTA << sp << "|" << RESET
+                  << " " << color << BOLD << pk << RESET << " "
+                  << MAGENTA << "|" << RESET
+                  << " " << color << po << RESET << " "
+                  << MAGENTA << "|" << RESET << "\n";
+    };
+
+    hline('=');
+    row("Key", "Option", WHITE);
+    hline('=');
+    row("1", "View all users",         CYAN);
+    hline('-');
+    row("2", "View all catalogs",      CYAN);
+    hline('-');
+    row("3", "Reset user password",    YELLOW);
+    hline('-');
+    row("4", "Delete user account",    RED);
+    hline('-');
+    row("0", "Logout",                 RED);
+    hline('=');
+
+    std::cout << "\n";
 }
 
 // ─── Menu ────────────────────────────────────────────────────────────────────
@@ -563,9 +779,19 @@ if (choice == 0) {
         std::cout << sp << "Username : ";
         std::string user;
         std::getline(std::cin, user);
-        std::cout << sp << "Password : ";
-        std::string pass;
-        std::getline(std::cin, pass);
+         std::cout << sp << "Password : ";
+        std::string pass = "";
+        char ch;
+        while ((ch = _getch()) != '\r') {    // '\r' = Enter on Windows
+            if (ch == '\b' && !pass.empty()) {
+                pass.pop_back();
+                std::cout << "\b \b" << std::flush;  // erase the * on screen
+            } else if (ch != '\b') {
+                pass += ch;
+                std::cout << '*' << std::flush;      // show * instead of character
+            }
+        }
+        std::cout << "\n";
 
         if (choice == 1) {
             auto res = loginUser(user, pass);
@@ -589,12 +815,20 @@ if (choice == 0) {
                           << "[\xe2\x9c\x94] Account created! Welcome, "
                           << CYAN << user << GREEN << "!" << RESET << "\n\n";
                 return *res;
-            }           
-            std::cout << "\n" << sp << RED << BOLD
-                      << "[!!] Username already taken." << RESET << "\n\n";
-                        std::cout << sp << YELLOW << "Press Enter to continue..." << RESET;
-                        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                        std::cout << "\n";
+            }
+            // ✅ show correct reason
+            if (user.empty() || pass.empty())
+                std::cout << "\n" << sp << RED << BOLD
+                          << "[!!] Username and password cannot be empty." << RESET << "\n\n";
+            else if (user == "public")
+                std::cout << "\n" << sp << RED << BOLD
+                          << "[!!] That username is reserved." << RESET << "\n\n";
+            else
+                std::cout << "\n" << sp << RED << BOLD
+                          << "[!!] Username already taken." << RESET << "\n\n";
+            std::cout << sp << YELLOW << "Press Enter to continue..." << RESET;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cout << "\n";
         }
     }
 }
@@ -610,21 +844,48 @@ int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 #endif
-
+    registerUser("admin", "admin123");
     printTitle();
 
-    std::cout << YELLOW << "\n" << RESET;
+    std::cout << YELLOW << BOLD << "\n  Press Enter to continue..." << RESET;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cout << "\n";
 
     while (true) {
+        #ifdef _WIN32
+            system("cls");
+        #else
+            system("clear");
+        #endif
         std::string username = authScreen();
-        Catalog cat = loadCatalog(username);
         bool running = true;
 
+    if (username == "admin") {
+        while (running) {
+            printAdminMenu();
+            std::cout << CYAN << BOLD << "  >> Choice: " << RESET;
+            std::string choiceStr;
+            std::getline(std::cin, choiceStr);
+            int choice = -1;
+            try { choice = std::stoi(choiceStr); } catch (...) {}
+            if (choice < 0 || choice > 4) {
+                std::cout << RED << BOLD << "  Please enter 0-4.\n" << RESET;
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                continue;
+            }
+            switch (choice) {
+                case 1: adminViewUsers();       break;
+                case 2: adminViewAllCatalogs(); break;
+                case 3: adminResetPassword();   break;
+                case 4: adminDeleteUser();      break;
+                case 0: running = false;        break;
+            }
+        }
+    } else {
+        Catalog cat = loadCatalog(username);
         while (running) {
             printMenu(username);
-            std::cout << CYAN << BOLD << "  >> " << RESET;
+            std::cout << CYAN << BOLD << "  >> Choice: " << RESET;
             std::string choiceStr;
             std::getline(std::cin, choiceStr);
             int choice = -1;
@@ -647,4 +908,5 @@ int main() {
             }
         }
     }
+}
 }
