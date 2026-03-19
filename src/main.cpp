@@ -34,6 +34,19 @@
 #define BG_GREY     "\033[100m"
 // ────────────────────────────────────────────────────────────────────────────
 
+static int getTermWidth() {
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+    return csbi.srWindow.Right - csbi.srWindow.Left + 1;
+}
+
+static std::string centerPad(const std::string& text, int termWidth = -1) {
+    if (termWidth < 0) termWidth = getTermWidth();
+    int pad = (termWidth - (int)text.size()) / 2;
+    if (pad < 0) pad = 0;
+    return std::string(pad, ' ') + text;
+}
+
 static void printGoodbye() {
     std::cout << "\n\n";
     std::cout << RED << BOLD;
@@ -50,9 +63,11 @@ static void printGoodbye() {
     std::cout << RESET << "\n\n";
 }
 
-static void printLoading(const std::string& msg = "Loading", int termWidth = 150) {
-    int barWidth = 40;
+static void printLoading(const std::string& msg = "Loading") {
+    int termWidth = getTermWidth();
+    int barWidth  = 40;
     int pad = (termWidth - barWidth - 12) / 2;
+    if (pad < 0) pad = 0;
     std::string sp = std::string(pad, ' ');
 
     std::cout << "\n" << sp << BOLD << YELLOW << msg << RESET << "\n";
@@ -70,7 +85,9 @@ static void printLoading(const std::string& msg = "Loading", int termWidth = 150
     std::cout << "\n" << sp << GREEN << BOLD << "Done!" << RESET << "\n\n";
 }
 
-static void printCentered(const std::string& text, int termWidth = 80) {
+// ✅ AFTER — use getTermWidth()
+static void printCentered(const std::string& text) {
+    int termWidth = getTermWidth();
     int pad = (termWidth - (int)text.size()) / 2;
     if (pad < 0) pad = 0;
     std::cout << std::string(pad, ' ') << text << "\n";
@@ -84,10 +101,10 @@ static void printAnimated(const std::string& text, int delayMs = 50) {
     std::cout << "\n";
 }
 
+// ✅ AFTER — use getTermWidth()
 static void printTitle() {
-    int w = 80;
-    auto center = [&](const std::string& s, int w = 154) {
-        int pad = (w - (int)s.size()) / 2;
+    auto center = [&](const std::string& s) {
+        int pad = (getTermWidth() - (int)s.size()) / 2;
         if (pad < 0) pad = 0;
         std::cout << std::string(pad, ' ') << s << "\n";
     };
@@ -95,14 +112,15 @@ static void printTitle() {
     std::cout << GREEN << BOLD;
     center("################################################################################");
     center("#                                                                              #");
-    center("#                        MEDIA CATALOG MANAGER                                 #");
+    center("#                           MEDIA CATALOG MANAGER                              #");
     center("#                                                                              #");
-    center("#                     Your personal movie tracker                              #");
+    center("#                        Your personal movie tracker                           #");
     center("#                                                                              #");
     center("################################################################################");
     std::cout << RESET << "\n";
     std::cout << GREEN;
-    int pad = (196 - 50) / 2;
+    int pad = (getTermWidth() - 28) / 2;         // ✅ dynamic — 28 = length of the text
+    if (pad < 0) pad = 0;
     std::cout << std::string(pad, ' ');
     printAnimated("Developed by Pre-Gen6 Group3", 60);
     std::cout << RESET << "\n";
@@ -144,7 +162,7 @@ static void doList(const Catalog& cat) {
 // ─── View ────────────────────────────────────────────────────────────────────
 static void doView(Catalog& cat) {
     printHeader("VIEW", "VIEW ENTRY");
-    int id = inputInt("Entry ID: ", 1, 99999);
+    int id = inputInt(centerPad("Entry ID: "), 1, 99999);
     Entry* ep = nullptr;
     for (auto& e : cat.entries)
         if (e.id == id) { ep = &e; break; }
@@ -184,13 +202,12 @@ static void doAdd(Catalog& cat) {
     std::cout << form << "\n\n";
 
     Entry e;
-    e.title  = inputLine("Title   : ");
-    int t    = inputInt("Type  1=Movie  2=Book : ", 1, 2);
-    e.type   = t == 1 ? MediaType::Movie : MediaType::Book;
-    e.genre  = inputLine("Genre   : ", true);
-    e.year   = inputInt("Year    : ", 1888, 2100);
-    e.rating = inputFloat("Rating  : ", 1.0f, 10.0f);
-    e.notes  = inputLine("Notes   : ", true);
+    e.title  = inputLine(centerPad("Title   : "));
+    int t    = inputInt (centerPad("Type  1=Movie  2=Book : "), 1, 2);
+    e.genre  = inputLine(centerPad("Genre   : "), true);
+    e.year   = inputInt (centerPad("Year    : "), 1888, 2100);
+    e.rating = inputFloat(centerPad("Rating  : "), 1.0f, 10.0f);
+    e.notes  = inputLine(centerPad("Notes   : "), true);
     std::string label = e.type == MediaType::Movie ? "Watched?" : "Read?";
     e.status = inputYN(label) ? WatchStatus::Done : WatchStatus::Pending;
 
@@ -218,7 +235,7 @@ static void doAdd(Catalog& cat) {
 // ─── Edit ────────────────────────────────────────────────────────────────────
 static void doEdit(Catalog& cat) {
     printHeader("EDIT", "EDIT ENTRY");
-    int id = inputInt("Entry ID to edit: ", 1, 99999);
+    int id = inputInt(centerPad("Entry ID to edit: "), 1, 99999);
     Entry* ep = findEntry(cat, id);
     if (!ep) { std::cout << RED << "Entry not found.\n" << RESET; return; }
     printEntry(*ep);
@@ -226,33 +243,58 @@ static void doEdit(Catalog& cat) {
     Entry updated = *ep;
     std::string s;
 
-    std::cout << "Title  [" << CYAN << updated.title  << RESET << "]: ";
+    // ✅ get terminal width once
+    int tw = getTermWidth();
+
+    // ✅ lambda — pads a label to be centered based on terminal width
+    // 20 = estimated length of the value shown after the label e.g. "[somevalue]: "
+    auto cp = [&](const std::string& label) {
+        int p = (tw - (int)label.size() - 20) / 2;
+        if (p < 0) p = 0;
+        return std::string(p, ' ') + label;
+    };
+
+    // BEFORE:  std::cout << "Title  [" << CYAN << updated.title  << RESET << "]: ";
+    // ✅ AFTER:
+    std::cout << cp("Title  [") << CYAN << updated.title  << RESET << "]: ";
     std::getline(std::cin, s); if (!s.empty()) updated.title = s;
 
-    std::cout << "Genre  [" << CYAN << updated.genre  << RESET << "]: ";
+    // BEFORE:  std::cout << "Genre  [" << CYAN << updated.genre  << RESET << "]: ";
+    // ✅ AFTER:
+    std::cout << cp("Genre  [") << CYAN << updated.genre  << RESET << "]: ";
     std::getline(std::cin, s); if (!s.empty()) updated.genre = s;
 
-    std::cout << "Year   [" << CYAN << updated.year   << RESET << "]: ";
+    // BEFORE:  std::cout << "Year   [" << CYAN << updated.year   << RESET << "]: ";
+    // ✅ AFTER:
+    std::cout << cp("Year   [") << CYAN << updated.year   << RESET << "]: ";
     std::getline(std::cin, s);
     if (!s.empty()) try { updated.year = std::stoi(s); } catch (...) {}
 
-    std::cout << "Rating [" << CYAN << updated.rating << RESET << "]: ";
+    // BEFORE:  std::cout << "Rating [" << CYAN << updated.rating << RESET << "]: ";
+    // ✅ AFTER:
+    std::cout << cp("Rating [") << CYAN << updated.rating << RESET << "]: ";
     std::getline(std::cin, s);
     if (!s.empty()) try {
         float v = std::stof(s);
         if (v >= 0 && v <= 10) updated.rating = v;
     } catch (...) {}
 
-    std::cout << "Notes  [" << CYAN << updated.notes  << RESET << "]: ";
+    // BEFORE:  std::cout << "Notes  [" << CYAN << updated.notes  << RESET << "]: ";
+    // ✅ AFTER:
+    std::cout << cp("Notes  [") << CYAN << updated.notes  << RESET << "]: ";
     std::getline(std::cin, s); if (!s.empty()) updated.notes = s;
 
-    // ✅ let user update watch/read status
+    // ✅ Status line — same cp() centering
     std::string currentStatus = updated.status == WatchStatus::Done
         ? (updated.type == MediaType::Movie ? "Watched" : "Read")
         : (updated.type == MediaType::Movie ? "Not Watched" : "Want to Read");
-    std::cout << "Status [" << CYAN << currentStatus << RESET << "] Change? ";
+
+    // BEFORE:  std::cout << "Status [" << CYAN << currentStatus << RESET << "] Change? ";
+    // ✅ AFTER:
+    std::cout << cp("Status [") << CYAN << currentStatus << RESET << "] Change? ";
     if (inputYN(""))
-        updated.status = inputYN(updated.type == MediaType::Movie ? "Mark as Watched?" : "Mark as Read?")
+        updated.status = inputYN(updated.type == MediaType::Movie
+            ? "Mark as Watched?" : "Mark as Read?")
             ? WatchStatus::Done : WatchStatus::Pending;
 
     if (editEntry(cat, id, updated))
@@ -264,7 +306,7 @@ static void doEdit(Catalog& cat) {
 // ─── Delete ──────────────────────────────────────────────────────────────────
 static void doDelete(Catalog& cat) {
     printHeader("DELETE", "DELETE ENTRY");
-    int id = inputInt("Entry ID to delete: ", 1, 99999);
+    int id = inputInt(centerPad("Entry ID to delete: "), 1, 99999);
     if (!findEntry(cat, id)) { std::cout << RED << "Entry not found.\n" << RESET; return; }
     if (inputYN("Delete entry #" + std::to_string(id) + "?")) {
         deleteEntry(cat, id);
@@ -285,8 +327,8 @@ static void doOMDb(Catalog& cat) {
     info.row(0).format().font_style({tabulate::FontStyle::bold});
     std::cout << info << "\n\n";
 
-    std::string title = inputLine("Title : ");
-    int year = inputInt("Year  : ", 0, 2100);
+    std::string title = inputLine(centerPad("Title : "));
+    int year = inputInt(centerPad("Year  : "), 0, 2100);
 
     std::cout << "\n" << CYAN << "Searching OMDb for \""
               << BOLD << title << RESET << CYAN << "\"..." << RESET << "\n\n";
@@ -318,8 +360,8 @@ static void doOMDb(Catalog& cat) {
         std::cout << summary << "\n\n";
     }
     std::cout << YELLOW << BOLD << "  Press Enter to go back to main menu..." << RESET;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cout << "\n";
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 // ─── Stats ───────────────────────────────────────────────────────────────────
@@ -332,10 +374,10 @@ static void doStats(const Catalog& cat) {
     }
 
     // ✅ New — requires only 1 enter
-    auto pressEnter = [](const std::string& msg = "  Press Enter to continue...") {
-    std::cout << YELLOW << msg << RESET;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cout << "\n";
+     auto pressEnter = [](const std::string& msg = "  Press Enter to continue...") {
+        std::cout << YELLOW << msg << RESET;
+        while (_getch() != '\r') {}
+        std::cout << "\n";
     };
 
     int total       = (int)cat.entries.size();
@@ -442,7 +484,9 @@ static void doStats(const Catalog& cat) {
     printBar("7-8  (Good) ", cnt3, CYAN);
     printBar("9-10 (Great)", cnt4, GREEN);
     std::cout << "\n";
-    pressEnter("  Press Enter to go back...");
+    std::cout << YELLOW << "  Press Enter to go back to main menu..." << RESET;
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 // ─── Admin ───────────────────────────────────────────────────────────────────
@@ -486,11 +530,12 @@ static void adminViewUsers() {
 
     int realCount = 0;
     for (auto& u : users)
-    if (u != "admin") realCount++;
-        std::cout << "  Total users: " << realCount << RESET << "\n\n";
+        if (u != "admin") realCount++;
+    std::cout << "\n" << YELLOW << BOLD << "  Total users: " << realCount << RESET << "\n\n";
 
     std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 static void adminViewAllCatalogs() {
@@ -516,7 +561,8 @@ static void adminViewAllCatalogs() {
     }
 
     std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 static void adminResetPassword() {
@@ -535,14 +581,14 @@ static void adminResetPassword() {
     }
     std::cout << "\n";
 
-    std::string username = inputLine("  Enter username to reset: ");
+    std::string username = inputLine(centerPad("Enter username to reset : "));
     auto it = std::find(users.begin(), users.end(), username);
     if (it == users.end()) {
         std::cout << RED << BOLD << "  User not found.\n" << RESET;
         return;
     }
 
-    std::string newPass = inputLine("  Enter new password: ");
+    std::string newPass  = inputLine(centerPad("Enter new password      : "));
     if (resetPassword(username, newPass)) {
         std::cout << "\n" << GREEN << BOLD
                   << "  [\xe2\x9c\x94] Password reset successfully for " << username
@@ -552,7 +598,8 @@ static void adminResetPassword() {
     }
 
     std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    while (_getch() != '\r') {}
+    system("cls");
 }
 static void adminDeleteUser() {
     printHeader(">>", "DELETE USER ACCOUNT");
@@ -570,7 +617,7 @@ static void adminDeleteUser() {
     }
     std::cout << "\n";
 
-    std::string username = inputLine("  Enter username to delete: ");
+    std::string username = inputLine(centerPad("Enter username to delete : "));
 
     if (username == "admin") {
         std::cout << RED << BOLD << "  Cannot delete admin account.\n" << RESET;
@@ -596,21 +643,33 @@ static void adminDeleteUser() {
     }
 
     std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 static void printAdminMenu() {
     std::cout << "\n";
+
+    // ── ASCII title centered ──────────────────────
+    int termW = getTermWidth();
+    int asciiW = 44;  // actual width of ADMIN ASCII art
+    int asciiPad = (termW - asciiW) / 2;
+    if (asciiPad < 0) asciiPad = 0;
+    std::string ap = std::string(asciiPad, ' ');
+
     std::cout << RED << BOLD;
-    std::cout << "  █████╗ ██████╗ ███╗   ███╗██╗███╗   ██╗\n";
-    std::cout << " ██╔══██╗██╔══██╗████╗ ████║██║████╗  ██║\n";
-    std::cout << " ███████║██║  ██║██╔████╔██║██║██╔██╗ ██║\n";
-    std::cout << " ██╔══██║██║  ██║██║╚██╔╝██║██║██║╚██╗██║\n";
-    std::cout << " ██║  ██║██████╔╝██║ ╚═╝ ██║██║██║ ╚████║\n";
-    std::cout << " ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝\n";
+    std::cout << ap << " █████╗ ██████╗ ███╗   ███╗██╗███╗   ██╗\n";
+    std::cout << ap << "██╔══██╗██╔══██╗████╗ ████║██║████╗  ██║\n";
+    std::cout << ap << "███████║██║  ██║██╔████╔██║██║██╔██╗ ██║\n";
+    std::cout << ap << "██╔══██║██║  ██║██║╚██╔╝██║██║██║╚██╗██║\n";
+    std::cout << ap << "██║  ██║██████╔╝██║ ╚═╝ ██║██║██║ ╚████║\n";
+    std::cout << ap << "╚═╝  ╚═╝╚═════╝ ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝\n";
     std::cout << RESET << "\n";
 
-    int menuPad = 10;
+    // ── Table centered — table width = 8+30+4 borders = 44 ──
+    int tableW = 44;
+    int menuPad = (termW - tableW) / 2;            // ✅ dynamic
+    if (menuPad < 0) menuPad = 0;
     std::string sp = std::string(menuPad, ' ');
 
     auto hline = [&](char fill) {
@@ -649,18 +708,30 @@ static void printAdminMenu() {
 }
 
 // ─── Menu ────────────────────────────────────────────────────────────────────
+// ✅ AFTER
 static void printMenu(const std::string& username) {
     std::cout << "\n";
+
+    // ── ASCII title centered ──────────────────────
+    int termW = getTermWidth();
+    int asciiW = 78;  // actual width of the ASCII art lines above
+    int asciiPad = (termW - asciiW) / 2;
+    if (asciiPad < 0) asciiPad = 0;
+    std::string ap = std::string(asciiPad, ' ');
+
     std::cout << MAGENTA << BOLD;
-    std::cout << "  ███╗   ███╗ █████╗ ██╗███╗   ██╗    ███╗   ███╗███████╗███╗   ██╗██╗   ██╗\n";
-    std::cout << "  ████╗ ████║██╔══██╗██║████╗  ██║    ████╗ ████║██╔════╝████╗  ██║██║   ██║\n";
-    std::cout << "  ██╔████╔██║███████║██║██╔██╗ ██║    ██╔████╔██║█████╗  ██╔██╗ ██║██║   ██║\n";
-    std::cout << "  ██║╚██╔╝██║██╔══██║██║██║╚██╗██║    ██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║   ██║\n";
-    std::cout << "  ██║ ╚═╝ ██║██║  ██║██║██║ ╚████║    ██║ ╚═╝ ██║███████╗██║ ╚████║╚██████╔╝\n";
-    std::cout << "  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝\n";
+    std::cout << ap << "███╗   ███╗ █████╗ ██╗███╗   ██╗    ███╗   ███╗███████╗███╗   ██╗██╗   ██╗\n";
+    std::cout << ap << "████╗ ████║██╔══██╗██║████╗  ██║    ████╗ ████║██╔════╝████╗  ██║██║   ██║\n";
+    std::cout << ap << "██╔████╔██║███████║██║██╔██╗ ██║    ██╔████╔██║█████╗  ██╔██╗ ██║██║   ██║\n";
+    std::cout << ap << "██║╚██╔╝██║██╔══██║██║██║╚██╗██║    ██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║   ██║\n";
+    std::cout << ap << "██║ ╚═╝ ██║██║  ██║██║██║ ╚████║    ██║ ╚═╝ ██║███████╗██║ ╚████║╚██████╔╝\n";
+    std::cout << ap << "╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝\n";
     std::cout << RESET << "\n";
 
-    int menuPad = 10;
+    // ── Table centered — table width = 8+14+26+4 borders = 56 ──
+    int tableW = 56;
+    int menuPad = (termW - tableW) / 2;            // ✅ dynamic
+    if (menuPad < 0) menuPad = 0;
     std::string sp = std::string(menuPad, ' ');
 
     auto hline = [&](char fill) {
@@ -716,18 +787,37 @@ static std::string authScreen() {
         std::cout << "\n\n\n";
 
         // ── Welcome ASCII centered ─────────────────────
+        int termW = getTermWidth();
+        auto cl = [&](const std::string& s, int visualW) {
+            int p = (termW - visualW) / 2;
+            if (p < 0) p = 0;
+            std::cout << std::string(p, ' ') << s << "\n";
+        };
+
+       std::cout << MAGENTA << BOLD;
+        // ── MOVIE ────────────────────────────────────
+        cl("███╗   ███╗ ██████╗ ██╗   ██╗██╗███████╗", 41);
+        cl("████╗ ████║██╔═══██╗██║   ██║██║██╔════╝", 41);
+        cl("██╔████╔██║██║   ██║██║   ██║██║█████╗  ", 41);
+        cl("██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██║██╔══╝  ", 41);
+        cl("██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ██║███████╗", 41);
+        cl("╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚═╝╚══════╝", 41);
+        std::cout << "\n";
+
+        // ── CATALOG ──────────────────────────────────
         std::cout << MAGENTA << BOLD;
-        printCentered("███╗   ███╗ ██████╗ ██╗   ██╗██╗███████╗      ██████╗ █████╗ ████████╗ █████╗ ██╗      ██████╗  ██████╗");
-        printCentered("████╗ ████║██╔═══██╗██║   ██║██║██╔════╝     ██╔════╝██╔══██╗╚══██╔══╝██╔══██╗██║     ██╔═══██╗██╔════╝");
-        printCentered("██╔████╔██║██║   ██║██║   ██║██║█████╗       ██║     ███████║   ██║   ███████║██║     ██║   ██║██║  ███╗");
-        printCentered("██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██║██╔══╝       ██║     ██╔══██║   ██║   ██╔══██║██║     ██║   ██║██║   ██║");
-        printCentered("██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ██║███████╗     ╚██████╗██║  ██║   ██║   ██║  ██║███████╗╚██████╔╝╚██████╔╝");
-        printCentered("╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚═╝╚══════╝      ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝");
+        cl(" ██████╗ █████╗ ████████╗ █████╗ ██╗      ██████╗  ██████╗ ", 61);
+        cl("██╔════╝██╔══██╗╚══██╔══╝██╔══██╗██║     ██╔═══██╗██╔════╝ ", 61);
+        cl("██║     ███████║   ██║   ███████║██║     ██║   ██║██║  ███╗ ", 61);
+        cl("██║     ██╔══██║   ██║   ██╔══██║██║     ██║   ██║██║   ██║ ", 61);
+        cl("╚██████╗██║  ██║   ██║   ██║  ██║███████╗╚██████╔╝╚██████╔╝ ", 61);
+        cl(" ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ", 61);
         std::cout << RESET << "\n";
 
 
         // ── Auth menu centered ────────────────────────
-        int pad = 50;
+        // int termW = getTermWidth();
+        int pad = (termW - 31) / 2;  // 31 = width of the box
         std::string sp = std::string(pad, ' ');
 
         std::cout << MAGENTA;
@@ -779,7 +869,7 @@ if (choice == 0) {
         std::cout << sp << "Username : ";
         std::string user;
         std::getline(std::cin, user);
-         std::cout << sp << "Password : ";
+        std::cout << sp << "Password : ";
         std::string pass = "";
         char ch;
         while ((ch = _getch()) != '\r') {    // '\r' = Enter on Windows
@@ -805,8 +895,8 @@ if (choice == 0) {
             std::cout << "\n" << sp << RED << BOLD
                       << "[\xe2\x9c\x96] Invalid username or password." << RESET << "\n\n";
                         std::cout << sp << YELLOW << "Press Enter to continue..." << RESET;
-                        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                        std::cout << "\n";
+                        while (_getch() != '\r') {}
+                        system("cls");
         } else {
             auto res = registerUser(user, pass);
             if (res) {
@@ -827,8 +917,8 @@ if (choice == 0) {
                 std::cout << "\n" << sp << RED << BOLD
                           << "[!!] Username already taken." << RESET << "\n\n";
             std::cout << sp << YELLOW << "Press Enter to continue..." << RESET;
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "\n";
+             while (_getch() != '\r') {}
+            system("cls");
         }
     }
 }
@@ -847,23 +937,23 @@ int main() {
     registerUser("admin", "admin123");
     printTitle();
 
-    std::cout << YELLOW << BOLD << "\n  Press Enter to continue..." << RESET;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cout << "\n";
-
+    std::cout << centerPad("Press Enter to continue...") << YELLOW << BOLD;
+    std::cout << RESET;
+    while (_getch() != '\r') {}
+    system("cls");
     while (true) {
-        #ifdef _WIN32
-            system("cls");
-        #else
-            system("clear");
-        #endif
         std::string username = authScreen();
         bool running = true;
 
     if (username == "admin") {
+        std::cout << "\n" << centerPad("Press Enter to access Admin Panel...") << YELLOW << BOLD;
+        std::cout << RESET;
+        while (_getch() != '\r') {}
+        system("cls");                          // ✅ clears login screen
         while (running) {
             printAdminMenu();
-            std::cout << CYAN << BOLD << "  >> Choice: " << RESET;
+            std::cout << centerPad(">> Choice: ") << CYAN << BOLD;
+            std::cout << RESET;
             std::string choiceStr;
             std::getline(std::cin, choiceStr);
             int choice = -1;
@@ -878,14 +968,22 @@ int main() {
                 case 2: adminViewAllCatalogs(); break;
                 case 3: adminResetPassword();   break;
                 case 4: adminDeleteUser();      break;
-                case 0: running = false;        break;
+                case 0:
+                    system("cls");              // ✅ clear screen on logout
+                    running = false;
+                    break;
             }
         }
     } else {
+        std::cout << "\n" << YELLOW << BOLD
+                  << "  Press Enter to continue..." << RESET;
+        while (_getch() != '\r') {}
+        system("cls");                          // ✅ clears login screen
         Catalog cat = loadCatalog(username);
         while (running) {
             printMenu(username);
-            std::cout << CYAN << BOLD << "  >> Choice: " << RESET;
+            std::cout << centerPad(">> Choice: ") << CYAN << BOLD;
+            std::cout << RESET;
             std::string choiceStr;
             std::getline(std::cin, choiceStr);
             int choice = -1;
@@ -903,7 +1001,10 @@ int main() {
                 case 5: doDelete(cat);    break;
                 case 6: doOMDb(cat);      break;
                 case 7: doStats(cat);     break;
-                case 8: running = false;  break;
+                case 8:
+                    system("cls");              // ✅ clear screen on logout
+                    running = false;
+                    break;
                 case 0: printGoodbye(); return 0;
             }
         }
