@@ -155,20 +155,151 @@ static SortField askSort() {
 
 // ─── List ────────────────────────────────────────────────────────────────────
 static void doList(const Catalog& cat) {
-    printHeader(">>", "CATALOG LIST");
-    printTable(queryEntries(cat, askSort(), {}), cat.username);
+    system("cls");
+
+    int termW = getTermWidth();
+    int sortPad = (termW - 34) / 2;
+    if (sortPad < 0) sortPad = 0;
+    std::string sp = std::string(sortPad, ' ');
+
+    // ── ASCII CATALOG LIST ────────────────────────
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    std::cout << "\n" << CYAN << BOLD;
+    cl(" ██████╗ █████╗ ████████╗ █████╗ ██╗      ██████╗  ██████╗      ██╗     ██╗███████╗████████╗", 90);
+    cl("██╔════╝██╔══██╗╚══██╔══╝██╔══██╗██║     ██╔═══██╗██╔════╝      ██║     ██║██╔════╝╚══██╔══╝", 90);
+    cl("██║     ███████║   ██║   ███████║██║     ██║   ██║██║  ███╗     ██║     ██║███████╗   ██║   ", 90);
+    cl("██║     ██╔══██║   ██║   ██╔══██║██║     ██║   ██║██║   ██║     ██║     ██║╚════██║   ██║   ", 90);
+    cl("╚██████╗██║  ██║   ██║   ██║  ██║███████╗╚██████╔╝╚██████╔╝     ███████╗██║███████║   ██║   ", 90);
+    cl(" ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝     ╚══════╝╚═╝╚══════╝   ╚═╝   ", 90);
+    std::cout << RESET << "\n";
+
+    // ── sort prompt ───────────────────────────────
+    int termW2 = getTermWidth();
+    int boxW   = 35;
+    int bpad   = (termW2 - boxW) / 2;
+    if (bpad < 0) bpad = 0;
+    std::string bp = std::string(bpad, ' ');
+
+    std::cout << "\n";
+    std::cout << bp << MAGENTA << "╔═══════════════════════════════════╗\n" << RESET;
+    std::cout << bp << MAGENTA << "║" << RESET
+              << BOLD << YELLOW << "         Sort Options              " << RESET
+              << MAGENTA << "║\n" << RESET;
+    std::cout << bp << MAGENTA << "╠═══════╦═══════════════════════════╣\n" << RESET;
+    std::cout << bp << MAGENTA << "║" << RESET
+              << BOLD << CYAN   << "   1   " << RESET
+              << MAGENTA << "║" << RESET
+              << "   Sort by Title           "
+              << MAGENTA << "║\n" << RESET;
+    std::cout << bp << MAGENTA << "╠═══════╬═══════════════════════════╣\n" << RESET;
+    std::cout << bp << MAGENTA << "║" << RESET
+              << BOLD << CYAN   << "   2   " << RESET
+              << MAGENTA << "║" << RESET
+              << "   Sort by Year            "
+              << MAGENTA << "║\n" << RESET;
+    std::cout << bp << MAGENTA << "╠═══════╬═══════════════════════════╣\n" << RESET;
+    std::cout << bp << MAGENTA << "║" << RESET
+              << BOLD << CYAN   << "   3   " << RESET
+              << MAGENTA << "║" << RESET
+              << "   Sort by Rating          "
+              << MAGENTA << "║\n" << RESET;
+    std::cout << bp << MAGENTA << "╚═══════╩═══════════════════════════╝\n" << RESET;
+    std::cout << "\n";
+
+    int s = -1;
+    while (true) {
+        std::cout << bp << CYAN << BOLD << ">> Choose (1-3): " << RESET;
+        std::string input;
+        std::getline(std::cin, input);
+        try {
+            s = std::stoi(input);
+            if (s >= 1 && s <= 3) break;
+        } catch (...) {}
+        std::cout << bp << RED << BOLD
+                  << "  Please enter 1, 2, or 3.\n" << RESET;
+    }
+    SortField sf = s == 1 ? SortField::Title : s == 2 ? SortField::Year : SortField::Rating;
+
+    system("cls");
+
+    // ── print ASCII again after cls ───────────────
+    std::cout << "\n" << CYAN << BOLD;
+    cl(" ██████╗ █████╗ ████████╗ █████╗ ██╗      ██████╗  ██████╗      ██╗     ██╗███████╗████████╗", 90);
+    cl("██╔════╝██╔══██╗╚══██╔══╝██╔══██╗██║     ██╔═══██╗██╔════╝      ██║     ██║██╔════╝╚══██╔══╝", 90);
+    cl("██║     ███████║   ██║   ███████║██║     ██║   ██║██║  ███╗     ██║     ██║███████╗   ██║   ", 90);
+    cl("██║     ██╔══██║   ██║   ██╔══██║██║     ██║   ██║██║   ██║     ██║     ██║╚════██║   ██║   ", 90);
+    cl("╚██████╗██║  ██║   ██║   ██║  ██║███████╗╚██████╔╝╚██████╔╝     ███████╗██║███████║   ██║   ", 90);
+    cl(" ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝     ╚══════╝╚═╝╚══════╝   ╚═╝   ", 90);
+    std::cout << RESET << "\n";
+
+    printTable(queryEntries(cat, sf, {}), cat.username);
+
+    std::cout << "\n" << YELLOW << BOLD
+              << centerPad("Press Enter to go back to main menu...") << RESET;
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 // ─── View ────────────────────────────────────────────────────────────────────
 static void doView(Catalog& cat) {
-    printHeader("VIEW", "VIEW ENTRY");
-    int id = inputInt(centerPad("Entry ID: "), 1, 99999);
+    system("cls");
+
+    int termW = getTermWidth();
+
+    // ── cl lambda for ASCII art ───────────────────
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    // ── reprint lambda — passed to inputInt ───────
+    // this reprints the ASCII header after cls on wrong input
+    auto reprintHeader = [&]() {
+        std::cout << "\n" << GREEN << BOLD;
+        cl("██╗   ██╗██╗███████╗██╗    ██╗    ███████╗███╗   ██╗████████╗██████╗ ██╗   ██╗", 80);
+        cl("██║   ██║██║██╔════╝██║    ██║    ██╔════╝████╗  ██║╚══██╔══╝██╔══██╗╚██╗ ██╔╝", 80);
+        cl("██║   ██║██║█████╗  ██║ █╗ ██║    █████╗  ██╔██╗ ██║   ██║   ██████╔╝ ╚████╔╝ ", 80);
+        cl("╚██╗ ██╔╝██║██╔══╝  ██║███╗██║    ██╔══╝  ██║╚██╗██║   ██║   ██╔══██╗  ╚██╔╝  ", 80);
+        cl(" ╚████╔╝ ██║███████╗╚███╔███╔╝    ███████╗██║ ╚████║   ██║   ██║  ██║   ██║   ", 80);
+        cl("  ╚═══╝  ╚═╝╚══════╝ ╚══╝╚══╝     ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   ", 80);
+        std::cout << RESET << "\n";
+    };
+
+    // ── print ASCII header first time ─────────────
+    reprintHeader();
+
+    // ── entry ID input — passes reprintHeader ─────
+    // ✅ on wrong input: cls → reprintHeader() → error → prompt again
+    int id = inputInt(centerPad("Entry ID: "), 1, 99999, reprintHeader);
+
+    // ── find entry ────────────────────────────────
     Entry* ep = nullptr;
     for (auto& e : cat.entries)
         if (e.id == id) { ep = &e; break; }
-    if (!ep) { std::cout << RED << "Entry not found.\n" << RESET; return; }
+
+    if (!ep) {
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("Entry not found.") << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
+        return;
+    }
+
+    // ── show entry ────────────────────────────────
+    system("cls");
     printEntry(*ep);
-    if (ep->type == MediaType::Movie && inputYN("Fetch OMDb data for this entry?")) {
+
+    // ── OMDb fetch ────────────────────────────────
+    if (ep->type == MediaType::Movie &&
+        inputYN(centerPad("Fetch OMDb data for this entry?"))) {
         auto res = fetchOMDb(ep->title, ep->year);
         if (res) {
             ep->director   = res->director;
@@ -177,10 +308,18 @@ static void doView(Catalog& cat) {
             if (ep->genre.empty()) ep->genre = res->genre;
             if (ep->year  == 0)    ep->year  = res->year;
             saveCatalog(cat);
-            std::cout << "\n" << GREEN << BOLD << "OMDb data saved!" << RESET << "\n\n";
+            std::cout << "\n" << GREEN << BOLD
+                      << centerPad("OMDb data saved!") << RESET << "\n\n";
+            system("cls");
             printEntry(*ep);
         }
     }
+
+    // ── press enter to go back ────────────────────
+    std::cout << "\n" << YELLOW << BOLD
+              << centerPad("Press Enter to go back to main menu...") << RESET;
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 // ─── Add ─────────────────────────────────────────────────────────────────────
@@ -209,7 +348,7 @@ static void doAdd(Catalog& cat) {
     e.rating = inputFloat(centerPad("Rating  : "), 1.0f, 10.0f);
     e.notes  = inputLine(centerPad("Notes   : "), true);
     std::string label = e.type == MediaType::Movie ? "Watched?" : "Read?";
-    e.status = inputYN(label) ? WatchStatus::Done : WatchStatus::Pending;
+    e.status = inputYN(centerPad(label)) ? WatchStatus::Done : WatchStatus::Pending;
 
     addEntry(cat, e);
     std::cout << "\n" << BOLD << GREEN << "ENTRY SAVED!" << RESET << "\n\n";
@@ -291,10 +430,9 @@ static void doEdit(Catalog& cat) {
 
     // BEFORE:  std::cout << "Status [" << CYAN << currentStatus << RESET << "] Change? ";
     // ✅ AFTER:
-    std::cout << cp("Status [") << CYAN << currentStatus << RESET << "] Change? ";
-    if (inputYN(""))
+    if (inputYN(cp("Change status?")))
         updated.status = inputYN(updated.type == MediaType::Movie
-            ? "Mark as Watched?" : "Mark as Read?")
+            ? centerPad("Mark as Watched?") : centerPad("Mark as Read?"))
             ? WatchStatus::Done : WatchStatus::Pending;
 
     if (editEntry(cat, id, updated))
@@ -308,7 +446,7 @@ static void doDelete(Catalog& cat) {
     printHeader("DELETE", "DELETE ENTRY");
     int id = inputInt(centerPad("Entry ID to delete: "), 1, 99999);
     if (!findEntry(cat, id)) { std::cout << RED << "Entry not found.\n" << RESET; return; }
-    if (inputYN("Delete entry #" + std::to_string(id) + "?")) {
+    if (inputYN(centerPad("Delete entry #" + std::to_string(id) + "?"))) {
         deleteEntry(cat, id);
         std::cout << "\n" << GREEN << BOLD << "Entry deleted." << RESET << "\n\n";
     }
@@ -336,11 +474,11 @@ static void doOMDb(Catalog& cat) {
     auto res = fetchOMDb(title, year);
     if (!res) { std::cout << RED << "No results found.\n" << RESET; return; }
 
-    if (inputYN("Add to catalog?")) {
+    if (inputYN(centerPad("Add to catalog?"))) {
         Entry e  = *res;
-        e.rating = inputFloat("Rating 1-10 : ", 1.0f, 10.0f);
-        e.notes  = inputLine("Notes       : ", true);
-        e.status = inputYN("Mark as Watched?") ? WatchStatus::Done : WatchStatus::Pending;
+        e.rating = inputFloat(centerPad("Rating 1-10 : "), 1.0f, 10.0f);
+        e.notes  = inputLine(centerPad("Notes       : "), true);
+        e.status = inputYN(centerPad("Mark as Watched?")) ? WatchStatus::Done : WatchStatus::Pending;
         addEntry(cat, e);
 
         std::cout << "\n" << BOLD << GREEN << "ENTRY SAVED!" << RESET << "\n\n";
@@ -498,7 +636,9 @@ static void adminViewUsers() {
         return;
     }
 
-    int menuPad = 10;
+    int tableW  = 30;                          // 6 + 20 + 4 borders
+    int menuPad = (getTermWidth() - tableW) / 2;
+    if (menuPad < 0) menuPad = 0;
     std::string sp = std::string(menuPad, ' ');
 
     auto hline = [&](char fill) {
@@ -630,7 +770,7 @@ static void adminDeleteUser() {
         return;
     }
 
-    if (inputYN("  Are you sure you want to delete " + username + "?")) {
+    if (inputYN(centerPad("Are you sure you want to delete " + username + "?"))) {
         if (deleteUser(username)) {
             std::cout << "\n" << GREEN << BOLD
                       << "  [\xe2\x9c\x94] User " << username << " deleted successfully."
@@ -976,9 +1116,9 @@ int main() {
         }
     } else {
         std::cout << "\n" << YELLOW << BOLD
-                  << "  Press Enter to continue..." << RESET;
+                  << centerPad("Press Enter to continue...") << RESET;
         while (_getch() != '\r') {}
-        system("cls");                          // ✅ clears login screen
+        system("cls");                         // ✅ clears login screen
         Catalog cat = loadCatalog(username);
         while (running) {
             printMenu(username);
