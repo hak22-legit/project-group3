@@ -6,6 +6,7 @@
 #include <cctype>
 #include <nlohmann/json.hpp>      
 #include <tabulate/tabulate.hpp>  
+#include <set>
 #include <sstream>
 #ifdef _WIN32
 #include <windows.h>
@@ -38,7 +39,21 @@ static std::string statusStr(const Entry& e) {
 }
 
 void addEntry(Catalog& cat, Entry e) {
-    e.id = cat.nextId++;
+    // collect all existing IDs
+    std::set<int> usedIds;
+    for (const auto& entry : cat.entries)
+        usedIds.insert(entry.id);
+
+    // find smallest available ID starting from 1
+    int newId = 1;
+    while (usedIds.count(newId))
+        newId++;
+
+    e.id = newId;
+
+    // update nextId to be safe
+    cat.nextId = newId + 1;
+
     cat.entries.push_back(e);
     saveCatalog(cat);
 }

@@ -324,93 +324,269 @@ static void doView(Catalog& cat) {
 
 // ─── Add ─────────────────────────────────────────────────────────────────────
 static void doAdd(Catalog& cat) {
-    printHeader("+", "ADD NEW ENTRY");
+    system("cls");
 
-    tabulate::Table form;
-    form.add_row({"Field", "Description"});
-    form.add_row({"Title",   "Enter movie or book title"});
-    form.add_row({"Type",    "1 = Movie   2 = Book"});
-    form.add_row({"Genre",   "e.g. Action, Sci-Fi, Drama"});
-    form.add_row({"Year",    "1888 - 2100"});
-    form.add_row({"Rating",  "1.0 - 10.0"});
-    form.add_row({"Notes",   "Any personal notes (optional)"});
-    form.add_row({"Status",  "Watched / Not Watched"});
-    form.column(0).format().width(14);
-    form.column(1).format().width(32);
-    form.row(0).format().font_style({tabulate::FontStyle::bold});
-    std::cout << form << "\n\n";
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
 
+    // ── ASCII ADD NEW ENTRY ───────────────────────
+    auto reprintHeader = [&]() {
+        std::cout << "\n" << YELLOW << BOLD;
+        cl(" █████╗ ██████╗ ██████╗     ███╗   ██╗███████╗██╗    ██╗    ███████╗███╗   ██╗████████╗██████╗ ██╗   ██╗", 103);
+        cl("██╔══██╗██╔══██╗██╔══██╗    ████╗  ██║██╔════╝██║    ██║    ██╔════╝████╗  ██║╚══██╔══╝██╔══██╗╚██╗ ██╔╝", 103);
+        cl("███████║██║  ██║██║  ██║    ██╔██╗ ██║█████╗  ██║ █╗ ██║    █████╗  ██╔██╗ ██║   ██║   ██████╔╝ ╚████╔╝ ", 103);
+        cl("██╔══██║██║  ██║██║  ██║    ██║╚██╗██║██╔══╝  ██║███╗██║    ██╔══╝  ██║╚██╗██║   ██║   ██╔══██╗  ╚██╔╝  ", 103);
+        cl("██║  ██║██████╔╝██████╔╝    ██║ ╚████║███████╗╚███╔███╔╝    ███████╗██║ ╚████║   ██║   ██║  ██║   ██║   ", 103);
+        cl("╚═╝  ╚═╝╚═════╝ ╚═════╝     ╚═╝  ╚═══╝╚══════╝ ╚══╝╚══╝     ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝  ", 103);
+        std::cout << RESET << "\n";
+    };
+
+    reprintHeader();
+
+    // ── form box centered ─────────────────────────
+    int boxW  = 52;
+    int tpad  = (termW - boxW) / 2;
+    if (tpad < 0) tpad = 0;
+    std::string tp = std::string(tpad, ' ');
+
+    auto hlineForm = [&](const std::string& left, const std::string& mid,
+                         const std::string& right, char fill) {
+        std::cout << tp << MAGENTA << left
+                  << std::string(16, fill) << mid
+                  << std::string(34, fill) << right
+                  << RESET << "\n";
+    };
+
+    auto formRow = [&](const std::string& field, const std::string& desc,
+                       const std::string& fieldColor) {
+        int fp = 15 - (int)field.size();
+        int dp = 33 - (int)desc.size();
+        if (fp < 0) fp = 0;
+        if (dp < 0) dp = 0;
+        std::cout << tp << MAGENTA << "|" << RESET
+                  << " " << fieldColor << BOLD << field << RESET
+                  << std::string(fp, ' ')
+                  << MAGENTA << "|" << RESET
+                  << " " << WHITE << desc << RESET
+                  << std::string(dp, ' ')
+                  << MAGENTA << "|" << RESET << "\n";
+    };
+
+    hlineForm("+", "+", "+", '=');
+    formRow("Field",   "Description",              CYAN);
+    hlineForm("+", "+", "+", '=');
+    formRow("Title",   "Enter movie title",         YELLOW);
+    hlineForm("+", "+", "+", '-');
+    formRow("Genre",   "e.g. Action, Sci-Fi, Drama", YELLOW);
+    hlineForm("+", "+", "+", '-');
+    formRow("Year",    "1888 - 2100",               YELLOW);
+    hlineForm("+", "+", "+", '-');
+    formRow("Rating",  "1.0 - 10.0",               YELLOW);
+    hlineForm("+", "+", "+", '-');
+    formRow("Notes",   "Any personal notes",        YELLOW);
+    hlineForm("+", "+", "+", '-');
+    formRow("Status",  "Watched / Not Watched",     YELLOW);
+    hlineForm("+", "+", "+", '=');
+    std::cout << "\n";
+
+    // ── inputs ────────────────────────────────────
     Entry e;
-    e.title  = inputLine(centerPad("Title   : "));
-    int t    = inputInt (centerPad("Type  1=Movie  2=Book : "), 1, 2);
-    e.genre  = inputLine(centerPad("Genre   : "), true);
-    e.year   = inputInt (centerPad("Year    : "), 1888, 2100);
-    e.rating = inputFloat(centerPad("Rating  : "), 1.0f, 10.0f);
-    e.notes  = inputLine(centerPad("Notes   : "), true);
-    std::string label = e.type == MediaType::Movie ? "Watched?" : "Read?";
-    e.status = inputYN(centerPad(label)) ? WatchStatus::Done : WatchStatus::Pending;
+    e.type   = MediaType::Movie;
+    e.title  = inputLine(centerPad("Title   : "), false, reprintHeader);
+    e.genre  = inputLine(centerPad("Genre   : "), true,  reprintHeader);
+    e.year   = inputInt (centerPad("Year    : "), 1888, 2100, reprintHeader);
+    e.rating = inputFloat(centerPad("Rating  : "), 1.0f, 10.0f, reprintHeader);
+    e.notes  = inputLine(centerPad("Notes   : "), true,  reprintHeader);
+    e.status = inputYN(centerPad("Watched?"), reprintHeader)
+               ? WatchStatus::Done : WatchStatus::Pending;
 
     addEntry(cat, e);
-    std::cout << "\n" << BOLD << GREEN << "ENTRY SAVED!" << RESET << "\n\n";
 
-    tabulate::Table summary;
-    summary.add_row({"Field", "Value"});
-    summary.add_row({"ID",     std::to_string(cat.entries.back().id)});
-    summary.add_row({"Title",  e.title});
-    summary.add_row({"Type",   e.type == MediaType::Movie ? "Movie" : "Book"});
-    summary.add_row({"Genre",  e.genre.empty() ? "-" : e.genre});
-    summary.add_row({"Year",   std::to_string(e.year)});
-    summary.add_row({"Rating", std::to_string((int)e.rating) + "/10"});
-    summary.add_row({"Status", e.status == WatchStatus::Done
-                        ? (e.type == MediaType::Movie ? "Watched" : "Read")
-                        : (e.type == MediaType::Movie ? "Not Watched" : "Want to Read")});
-    summary.add_row({"Notes",  e.notes.empty() ? "-" : e.notes});
-    summary.column(0).format().width(14);
-    summary.column(1).format().width(30);
-    summary.row(0).format().font_style({tabulate::FontStyle::bold});
-    std::cout << summary << "\n\n";
+    system("cls");
+    reprintHeader();
+
+    // ── summary box centered ──────────────────────
+    int sumW  = 52;
+    int spad  = (termW - sumW) / 2;
+    if (spad < 0) spad = 0;
+    std::string sp2 = std::string(spad, ' ');
+
+    auto hlineSum = [&](const std::string& left, const std::string& mid,
+                        const std::string& right, char fill) {
+        std::cout << sp2 << CYAN << left
+                  << std::string(16, fill) << mid
+                  << std::string(34, fill) << right
+                  << RESET << "\n";
+    };
+
+    auto sumRow = [&](const std::string& field, const std::string& value,
+                      const std::string& valueColor) {
+        int fp = 15 - (int)field.size();
+        int vp = 33 - (int)value.size();
+        if (fp < 0) fp = 0;
+        if (vp < 0) vp = 0;
+        std::cout << sp2 << CYAN << "|" << RESET
+                  << " " << YELLOW << BOLD << field << RESET
+                  << std::string(fp, ' ')
+                  << CYAN << "|" << RESET
+                  << " " << valueColor << value << RESET
+                  << std::string(vp, ' ')
+                  << CYAN << "|" << RESET << "\n";
+    };
+
+    std::string st = e.status == WatchStatus::Done ? "Watched" : "Not Watched";
+    std::string statusColor = e.status == WatchStatus::Done ? GREEN : RED;
+    std::string ratingColor;
+    if      (e.rating >= 7.0f) ratingColor = GREEN;
+    else if (e.rating >= 5.0f) ratingColor = YELLOW;
+    else                       ratingColor = RED;
+
+    std::cout << "\n" << GREEN << BOLD
+              << centerPad("ENTRY SAVED!") << RESET << "\n\n";
+
+    hlineSum("+", "+", "+", '=');
+    sumRow("Field",   "Value",                          CYAN);
+    hlineSum("+", "+", "+", '=');
+    sumRow("ID",      std::to_string(cat.entries.back().id), WHITE);
+    hlineSum("+", "+", "+", '-');
+    sumRow("Title",   e.title,                          WHITE);
+    hlineSum("+", "+", "+", '-');
+    sumRow("Type",    "Movie",                          MAGENTA);
+    hlineSum("+", "+", "+", '-');
+    sumRow("Genre",   e.genre.empty() ? "-" : e.genre, WHITE);
+    hlineSum("+", "+", "+", '-');
+    sumRow("Year",    std::to_string(e.year),           WHITE);
+    hlineSum("+", "+", "+", '-');
+    sumRow("Rating",  std::to_string((int)e.rating) + "/10", ratingColor);
+    hlineSum("+", "+", "+", '-');
+    sumRow("Status",  st,                               statusColor);
+    hlineSum("+", "+", "+", '-');
+    sumRow("Notes",   e.notes.empty() ? "-" : e.notes, WHITE);
+    hlineSum("+", "+", "+", '=');
+    std::cout << "\n";
+
+    std::cout << YELLOW << BOLD
+              << centerPad("Press Enter to go back to main menu...") << RESET;
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 // ─── Edit ────────────────────────────────────────────────────────────────────
 static void doEdit(Catalog& cat) {
-    printHeader("EDIT", "EDIT ENTRY");
-    int id = inputInt(centerPad("Entry ID to edit: "), 1, 99999);
+    system("cls");
+
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    // ── ASCII EDIT ENTRY ──────────────────────────
+    auto reprintHeader = [&]() {
+        std::cout << "\n" << MAGENTA << BOLD;
+        cl("███████╗██████╗ ██╗████████╗    ███████╗███╗   ██╗████████╗██████╗ ██╗   ██╗", 78);
+        cl("██╔════╝██╔══██╗██║╚══██╔══╝    ██╔════╝████╗  ██║╚══██╔══╝██╔══██╗╚██╗ ██╔╝", 78);
+        cl("█████╗  ██║  ██║██║   ██║       █████╗  ██╔██╗ ██║   ██║   ██████╔╝ ╚████╔╝ ", 78);
+        cl("██╔══╝  ██║  ██║██║   ██║       ██╔══╝  ██║╚██╗██║   ██║   ██╔══██╗  ╚██╔╝  ", 78);
+        cl("███████╗██████╔╝██║   ██║       ███████╗██║ ╚████║   ██║   ██║  ██║   ██║   ", 78);
+        cl("╚══════╝╚═════╝ ╚═╝   ╚═╝       ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝  ", 78);
+        std::cout << RESET << "\n";
+    };
+
+    reprintHeader();
+
+    // ── entry ID input ────────────────────────────
+    int id = inputInt(centerPad("Entry ID to edit: "), 1, 99999, reprintHeader);
     Entry* ep = findEntry(cat, id);
-    if (!ep) { std::cout << RED << "Entry not found.\n" << RESET; return; }
+
+    if (!ep) {
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("Entry not found.") << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
+        return;
+    }
+
+    system("cls");
+    reprintHeader();
     printEntry(*ep);
-    std::cout << YELLOW << "Press Enter to keep existing value.\n\n" << RESET;
+
+    // ── info box ──────────────────────────────────
+    int termW2 = getTermWidth();
+    int boxW   = 52;
+    int bpad   = (termW2 - boxW) / 2;
+    if (bpad < 0) bpad = 0;
+    std::string bp = std::string(bpad, ' ');
+
+    std::cout << bp << YELLOW << BOLD
+              << "Press Enter to keep existing value.\n\n" << RESET;
+
     Entry updated = *ep;
     std::string s;
 
-    // ✅ get terminal width once
-    int tw = getTermWidth();
-
-    // ✅ lambda — pads a label to be centered based on terminal width
-    // 20 = estimated length of the value shown after the label e.g. "[somevalue]: "
+    // ── cp lambda for centering field prompts ─────
     auto cp = [&](const std::string& label) {
-        int p = (tw - (int)label.size() - 20) / 2;
+        int p = (termW2 - (int)label.size() - 20) / 2;
         if (p < 0) p = 0;
         return std::string(p, ' ') + label;
     };
 
-    // BEFORE:  std::cout << "Title  [" << CYAN << updated.title  << RESET << "]: ";
-    // ✅ AFTER:
-    std::cout << cp("Title  [") << CYAN << updated.title  << RESET << "]: ";
+    // ── field border helpers ──────────────────────
+    auto hline = [&](char fill) {
+        std::cout << bp << MAGENTA
+                  << "+" << std::string(16, fill)
+                  << "+" << std::string(34, fill)
+                  << "+" << RESET << "\n";
+    };
+
+    auto fieldRow = [&](const std::string& label,
+                        const std::string& current) {
+        int lp = 15 - (int)label.size();
+        int vp = 33 - (int)current.size();
+        if (lp < 0) lp = 0;
+        if (vp < 0) vp = 0;
+        std::cout << bp << MAGENTA << "|" << RESET
+                  << " " << YELLOW << BOLD << label << RESET
+                  << std::string(lp, ' ')
+                  << MAGENTA << "|" << RESET
+                  << " " << CYAN << current << RESET
+                  << std::string(vp, ' ')
+                  << MAGENTA << "|" << RESET << "\n";
+    };
+
+    // ── Title ─────────────────────────────────────
+    hline('=');
+    fieldRow("Title", updated.title);
+    hline('-');
+    std::cout << cp("Title  [") << CYAN << updated.title << RESET << "]: ";
     std::getline(std::cin, s); if (!s.empty()) updated.title = s;
 
-    // BEFORE:  std::cout << "Genre  [" << CYAN << updated.genre  << RESET << "]: ";
-    // ✅ AFTER:
-    std::cout << cp("Genre  [") << CYAN << updated.genre  << RESET << "]: ";
+    // ── Genre ─────────────────────────────────────
+    hline('-');
+    fieldRow("Genre", updated.genre.empty() ? "-" : updated.genre);
+    hline('-');
+    std::cout << cp("Genre  [") << CYAN << updated.genre << RESET << "]: ";
     std::getline(std::cin, s); if (!s.empty()) updated.genre = s;
 
-    // BEFORE:  std::cout << "Year   [" << CYAN << updated.year   << RESET << "]: ";
-    // ✅ AFTER:
-    std::cout << cp("Year   [") << CYAN << updated.year   << RESET << "]: ";
+    // ── Year ──────────────────────────────────────
+    hline('-');
+    fieldRow("Year", std::to_string(updated.year));
+    hline('-');
+    std::cout << cp("Year   [") << CYAN << updated.year << RESET << "]: ";
     std::getline(std::cin, s);
     if (!s.empty()) try { updated.year = std::stoi(s); } catch (...) {}
 
-    // BEFORE:  std::cout << "Rating [" << CYAN << updated.rating << RESET << "]: ";
-    // ✅ AFTER:
+    // ── Rating ────────────────────────────────────
+    hline('-');
+    fieldRow("Rating", std::to_string((int)updated.rating) + "/10");
+    hline('-');
     std::cout << cp("Rating [") << CYAN << updated.rating << RESET << "]: ";
     std::getline(std::cin, s);
     if (!s.empty()) try {
@@ -418,86 +594,392 @@ static void doEdit(Catalog& cat) {
         if (v >= 0 && v <= 10) updated.rating = v;
     } catch (...) {}
 
-    // BEFORE:  std::cout << "Notes  [" << CYAN << updated.notes  << RESET << "]: ";
-    // ✅ AFTER:
-    std::cout << cp("Notes  [") << CYAN << updated.notes  << RESET << "]: ";
+    // ── Notes ─────────────────────────────────────
+    hline('-');
+    fieldRow("Notes", updated.notes.empty() ? "-" : updated.notes);
+    hline('-');
+    std::cout << cp("Notes  [") << CYAN << updated.notes << RESET << "]: ";
     std::getline(std::cin, s); if (!s.empty()) updated.notes = s;
 
-    // ✅ Status line — same cp() centering
+    // ── Status ────────────────────────────────────
     std::string currentStatus = updated.status == WatchStatus::Done
-        ? (updated.type == MediaType::Movie ? "Watched" : "Read")
-        : (updated.type == MediaType::Movie ? "Not Watched" : "Want to Read");
+        ? "Watched" : "Not Watched";
+    std::string statusColor = updated.status == WatchStatus::Done ? GREEN : RED;
+    hline('-');
+    std::cout << bp << MAGENTA << "|" << RESET
+              << " " << YELLOW << BOLD << "Status" << RESET
+              << std::string(9, ' ')
+              << MAGENTA << "|" << RESET
+              << " " << statusColor << currentStatus << RESET
+              << std::string(33 - (int)currentStatus.size(), ' ')
+              << MAGENTA << "|" << RESET << "\n";
+    hline('=');
 
-    // BEFORE:  std::cout << "Status [" << CYAN << currentStatus << RESET << "] Change? ";
-    // ✅ AFTER:
-    if (inputYN(cp("Change status?")))
-        updated.status = inputYN(updated.type == MediaType::Movie
-            ? centerPad("Mark as Watched?") : centerPad("Mark as Read?"))
+    std::cout << "\n";
+    if (inputYN(centerPad("Change status?")))
+        updated.status = inputYN(centerPad("Mark as Watched?"))
             ? WatchStatus::Done : WatchStatus::Pending;
 
-    if (editEntry(cat, id, updated))
-        std::cout << "\n" << GREEN << BOLD << "Entry updated!" << RESET << "\n\n";
-    else
-        std::cout << "\n" << RED << "Update failed.\n" << RESET;
+    // ── save ──────────────────────────────────────
+    if (editEntry(cat, id, updated)) {
+        system("cls");
+        reprintHeader();
+        std::cout << "\n" << GREEN << BOLD
+                  << centerPad("Entry updated successfully!") << RESET << "\n\n";
+        printEntry(updated);
+    } else {
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("Update failed.") << RESET << "\n";
+    }
+
+    std::cout << "\n" << YELLOW << BOLD
+              << centerPad("Press Enter to go back to main menu...") << RESET;
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 // ─── Delete ──────────────────────────────────────────────────────────────────
 static void doDelete(Catalog& cat) {
-    printHeader("DELETE", "DELETE ENTRY");
-    int id = inputInt(centerPad("Entry ID to delete: "), 1, 99999);
-    if (!findEntry(cat, id)) { std::cout << RED << "Entry not found.\n" << RESET; return; }
-    if (inputYN(centerPad("Delete entry #" + std::to_string(id) + "?"))) {
-        deleteEntry(cat, id);
-        std::cout << "\n" << GREEN << BOLD << "Entry deleted." << RESET << "\n\n";
+    system("cls");
+
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    // ── ASCII DELETE ENTRY ────────────────────────
+    auto reprintHeader = [&]() {
+        std::cout << "\n" << RED << BOLD;
+        cl("██████╗ ███████╗███╗   ███╗ ██████╗ ██╗   ██╗███████╗    ███████╗███╗   ██╗████████╗██████╗ ██╗   ██╗", 101);
+        cl("██╔══██╗██╔════╝████╗ ████║██╔═══██╗██║   ██║██╔════╝    ██╔════╝████╗  ██║╚══██╔══╝██╔══██╗╚██╗ ██╔╝", 101);
+        cl("██████╔╝█████╗  ██╔████╔██║██║   ██║██║   ██║█████╗      █████╗  ██╔██╗ ██║   ██║   ██████╔╝ ╚████╔╝ ", 101);
+        cl("██╔══██╗██╔══╝  ██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝      ██╔══╝  ██║╚██╗██║   ██║   ██╔══██╗  ╚██╔╝  ", 101);
+        cl("██║  ██║███████╗██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗    ███████╗██║ ╚████║   ██║   ██║  ██║   ██║   ", 101);
+        cl("╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝    ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝  ", 101);
+        std::cout << RESET << "\n";
+    };
+
+    reprintHeader();
+
+    // ── entry ID input ────────────────────────────
+    int id = inputInt(centerPad("Entry ID to delete: "), 1, 99999, reprintHeader);
+    Entry* ep = findEntry(cat, id);
+
+    if (!ep) {
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("Entry not found.") << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
+        return;
     }
+
+    // ── show entry to confirm ─────────────────────
+    system("cls");
+    reprintHeader();
+    printEntry(*ep);
+
+    // ── confirm box ───────────────────────────────
+    int termW2  = getTermWidth();
+    int boxW    = 50;
+    int bpad    = (termW2 - boxW) / 2;
+    if (bpad < 0) bpad = 0;
+    std::string bp = std::string(bpad, ' ');
+
+    std::cout << "\n";
+    std::cout << bp << RED    << "+" << std::string(50, '=') << "+" << RESET << "\n";
+    std::cout << bp << RED    << "|" << RESET
+              << BOLD << RED  << "  ⚠  Are you sure you want to delete this entry?" << RESET
+              << "  " << RED  << "|" << RESET << "\n";
+    std::cout << bp << RED    << "+" << std::string(50, '=') << "+" << RESET << "\n\n";
+
+    if (inputYN(centerPad("Delete entry #" + std::to_string(id) + "?"),
+                reprintHeader)) {
+        deleteEntry(cat, id);
+
+        system("cls");
+        reprintHeader();
+
+        std::cout << "\n";
+        int cpad = (termW2 - 40) / 2;
+        if (cpad < 0) cpad = 0;
+        std::string cp2 = std::string(cpad, ' ');
+
+        std::cout << cp2 << GREEN << "+" << std::string(36, '=') << "+" << RESET << "\n";
+        std::cout << cp2 << GREEN << "|" << RESET
+                  << BOLD << GREEN << "  Entry #" << id
+                  << " deleted successfully.    " << RESET
+                  << GREEN << "|" << RESET << "\n";
+        std::cout << cp2 << GREEN << "+" << std::string(36, '=') << "+" << RESET << "\n\n";
+
+    } else {
+        system("cls");
+        reprintHeader();
+
+        std::cout << "\n" << YELLOW << BOLD
+                  << centerPad("Cancelled. Entry was not deleted.") << RESET << "\n\n";
+    }
+
+    std::cout << YELLOW << BOLD
+              << centerPad("Press Enter to go back to main menu...") << RESET;
+    while (_getch() != '\r') {}
+    system("cls");
 }
 
 // ─── OMDb ────────────────────────────────────────────────────────────────────
 static void doOMDb(Catalog& cat) {
-    printHeader("OMDb", "FETCH FROM OMDb");
+    system("cls");
 
-    tabulate::Table info;
-    info.add_row({"Field", "Input"});
-    info.add_row({"Title", "Enter movie title to search"});
-    info.add_row({"Year",  "Enter release year or 0 to skip"});
-    info.column(0).format().width(14);
-    info.column(1).format().width(34);
-    info.row(0).format().font_style({tabulate::FontStyle::bold});
-    std::cout << info << "\n\n";
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
 
-    std::string title = inputLine(centerPad("Title : "));
-    int year = inputInt(centerPad("Year  : "), 0, 2100);
+    // ── ASCII SEARCH MOVIE ────────────────────────
+    auto reprintHeader = [&]() {
+        std::cout << "\n" << CYAN << BOLD;
+        cl("███████╗███████╗ █████╗ ██████╗  ██████╗██╗  ██╗    ███╗   ███╗ ██████╗ ██╗   ██╗██╗███████╗", 95);
+        cl("██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║    ████╗ ████║██╔═══██╗██║   ██║██║██╔════╝", 95);
+        cl("███████╗█████╗  ███████║██████╔╝██║     ███████║    ██╔████╔██║██║   ██║██║   ██║██║█████╗  ", 95);
+        cl("╚════██║██╔══╝  ██╔══██║██╔══██╗██║     ██╔══██║    ██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██║██╔══╝  ", 95);
+        cl("███████║███████╗██║  ██║██║  ██║╚██████╗██║  ██║    ██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ██║███████╗", 95);
+        cl("╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝    ╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚═╝╚══════╝", 95);
+        std::cout << RESET << "\n";
+    };
 
-    std::cout << "\n" << CYAN << "Searching OMDb for \""
-              << BOLD << title << RESET << CYAN << "\"..." << RESET << "\n\n";
+    reprintHeader();
+
+    // ── search form box ───────────────────────────
+    int boxW = 52;
+    int bpad = (termW - boxW) / 2;
+    if (bpad < 0) bpad = 0;
+    std::string bp = std::string(bpad, ' ');
+
+    std::cout << bp << MAGENTA << "+" << std::string(50, '=') << "+" << RESET << "\n";
+    std::cout << bp << MAGENTA << "|" << RESET
+              << BOLD << YELLOW << "              Search Information                  " << RESET
+              << MAGENTA << "|" << RESET << "\n";
+    std::cout << bp << MAGENTA << "+" << std::string(16, '-')
+              << "+" << std::string(33, '-') << "+" << RESET << "\n";
+    std::cout << bp << MAGENTA << "|" << RESET
+              << " " << YELLOW << BOLD << "Title          " << RESET
+              << MAGENTA << "|" << RESET
+              << " " << WHITE  << "Enter movie title to search    " << RESET
+              << MAGENTA << "|" << RESET << "\n";
+    std::cout << bp << MAGENTA << "+" << std::string(16, '-')
+              << "+" << std::string(33, '-') << "+" << RESET << "\n";
+    std::cout << bp << MAGENTA << "|" << RESET
+              << " " << YELLOW << BOLD << "Year           " << RESET
+              << MAGENTA << "|" << RESET
+              << " " << WHITE  << "Release year or 0 to skip      " << RESET
+              << MAGENTA << "|" << RESET << "\n";
+    std::cout << bp << MAGENTA << "+" << std::string(50, '=') << "+" << RESET << "\n\n";
+
+    // ── inputs ────────────────────────────────────
+    std::string title = inputLine(centerPad("Title : "), false, reprintHeader);
+    int year          = inputInt (centerPad("Year  : "), 0, 2100, reprintHeader);
+
+    // ── searching message ─────────────────────────
+    system("cls");
+    reprintHeader();
+    std::string searchMsg = "Searching for \"" + title + "\"...";
+    int smpad = (termW - (int)searchMsg.size()) / 2;
+    if (smpad < 0) smpad = 0;
+    std::cout << "\n" << std::string(smpad, ' ')
+              << CYAN << BOLD << searchMsg << RESET << "\n\n";
 
     auto res = fetchOMDb(title, year);
-    if (!res) { std::cout << RED << "No results found.\n" << RESET; return; }
 
-    if (inputYN(centerPad("Add to catalog?"))) {
-        Entry e  = *res;
-        e.rating = inputFloat(centerPad("Rating 1-10 : "), 1.0f, 10.0f);
-        e.notes  = inputLine(centerPad("Notes       : "), true);
-        e.status = inputYN(centerPad("Mark as Watched?")) ? WatchStatus::Done : WatchStatus::Pending;
+    // ── recalculate center for result boxes ───────
+    // box width = 1 + 16 + 1 + 51 + 1 = 70
+    int resultBoxW = 70;
+    int rbpad = (termW - resultBoxW) / 2;
+    if (rbpad < 0) rbpad = 0;
+    std::string rbp = std::string(rbpad, ' ');
+
+    // ── wrap text helper ──────────────────────────
+    auto wrapText = [](const std::string& s, int maxLen) -> std::vector<std::string> {
+        std::vector<std::string> lines;
+        std::string remaining = s;
+        while ((int)remaining.size() > maxLen) {
+            int cut = maxLen;
+            for (int i = maxLen - 1; i >= 0; i--) {
+                if (remaining[i] == ' ') { cut = i; break; }
+            }
+            lines.push_back(remaining.substr(0, cut));
+            remaining = remaining.substr(
+                cut + (remaining[cut] == ' ' ? 1 : 0));
+        }
+        if (!remaining.empty()) lines.push_back(remaining);
+        return lines;
+    };
+
+    if (!res) {
+        // ── no results box ────────────────────────
+        std::cout << "\n";
+        std::cout << rbp << RED << "+" << std::string(68, '=') << "+" << RESET << "\n";
+        std::string noRes = "   No results found for \"" + title + "\".";
+        int nrp = 68 - (int)noRes.size();
+        if (nrp < 0) nrp = 0;
+        std::cout << rbp << RED << "|" << RESET
+                  << RED << BOLD << noRes << RESET
+                  << std::string(nrp, ' ')
+                  << RED << "|" << RESET << "\n";
+        std::cout << rbp << RED << "+" << std::string(68, '=') << "+" << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back to main menu...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
+        return;
+    }
+
+    // ── result box ────────────────────────────────
+    system("cls");
+    reprintHeader();
+
+    // ── resultRow lambda with wrap ────────────────
+    auto resultRow = [&](const std::string& label,
+                         const std::string& value,
+                         const std::string& valueColor) {
+        auto valueLines = wrapText(value, 50);
+
+        int lp  = 15 - (int)label.size();
+        if (lp < 0) lp = 0;
+
+        // first line
+        int vp0 = 50 - (int)valueLines[0].size();
+        if (vp0 < 0) vp0 = 0;
+        std::cout << rbp << CYAN << "|" << RESET
+                  << " " << YELLOW << BOLD << label << RESET
+                  << std::string(lp, ' ')
+                  << CYAN << "|" << RESET
+                  << " " << valueColor << valueLines[0] << RESET
+                  << std::string(vp0, ' ')
+                  << CYAN << "|" << RESET << "\n";
+
+        // continuation lines
+        for (int i = 1; i < (int)valueLines.size(); i++) {
+            int vp = 50 - (int)valueLines[i].size();
+            if (vp < 0) vp = 0;
+            std::cout << rbp << CYAN << "|" << RESET
+                      << " " << std::string(15, ' ')
+                      << CYAN << "|" << RESET
+                      << " " << valueColor << valueLines[i] << RESET
+                      << std::string(vp, ' ')
+                      << CYAN << "|" << RESET << "\n";
+        }
+    };
+
+    std::string yr  = res->year > 0 ? std::to_string(res->year) : "-";
+    std::string rat = res->imdbRating.empty() ? "-" : res->imdbRating;
+
+    std::cout << "\n";
+    std::cout << rbp << CYAN << "+" << std::string(68, '=') << "+" << RESET << "\n";
+    std::cout << rbp << CYAN << "|" << RESET
+              << BOLD << CYAN
+              << "                    Search Result                    "
+              << "               " << RESET
+              << CYAN << "|" << RESET << "\n";
+    std::cout << rbp << CYAN << "+" << std::string(16, '-')
+              << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Title",    res->title,                              WHITE);
+    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Year",     yr,                                      WHITE);
+    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Genre",    res->genre.empty()    ? "-" : res->genre,    WHITE);
+    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Director", res->director.empty() ? "-" : res->director, CYAN);
+    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("IMDb",     rat,                                          GREEN);
+    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Plot",     res->plot.empty() ? "-" : res->plot,         DIM);
+    std::cout << rbp << CYAN << "+" << std::string(68, '=') << "+" << RESET << "\n\n";
+
+    // ── add to catalog ────────────────────────────
+    if (inputYN(centerPad("Add to catalog?"), reprintHeader)) {
+        Entry e   = *res;
+        e.rating  = inputFloat(centerPad("Rating 1-10 : "), 1.0f, 10.0f, reprintHeader);
+        e.notes   = inputLine (centerPad("Notes       : "), true,  reprintHeader);
+        e.status  = inputYN   (centerPad("Mark as Watched?"), reprintHeader)
+                    ? WatchStatus::Done : WatchStatus::Pending;
         addEntry(cat, e);
 
-        std::cout << "\n" << BOLD << GREEN << "ENTRY SAVED!" << RESET << "\n\n";
+        system("cls");
+        reprintHeader();
 
-        tabulate::Table summary;
-        summary.add_row({"Field", "Value"});
-        summary.add_row({"ID",     std::to_string(cat.entries.back().id)});
-        summary.add_row({"Title",  e.title});
-        summary.add_row({"Genre",  e.genre.empty() ? "-" : e.genre});
-        summary.add_row({"Year",   e.year > 0 ? std::to_string(e.year) : "-"});
-        summary.add_row({"Rating", std::to_string((int)e.rating) + "/10"});
-        summary.add_row({"Status", e.status == WatchStatus::Done ? "Watched" : "Not Watched"});
-        summary.add_row({"Notes",  e.notes.empty() ? "-" : e.notes});
-        summary.column(0).format().width(14);
-        summary.column(1).format().width(30);
-        summary.row(0).format().font_style({tabulate::FontStyle::bold});
-        std::cout << summary << "\n\n";
+        std::string st = e.status == WatchStatus::Done ? "Watched" : "Not Watched";
+        std::string statusColor = e.status == WatchStatus::Done ? GREEN : RED;
+        std::string ratingColor;
+        if      (e.rating >= 7.0f) ratingColor = GREEN;
+        else if (e.rating >= 5.0f) ratingColor = YELLOW;
+        else                       ratingColor = RED;
+
+        std::cout << "\n" << GREEN << BOLD
+                  << centerPad("ENTRY SAVED!") << RESET << "\n\n";
+
+        // ── sumRow lambda with wrap ───────────────
+        auto sumRow = [&](const std::string& label,
+                          const std::string& value,
+                          const std::string& valueColor) {
+            auto valueLines = wrapText(value, 50);
+
+            int lp  = 15 - (int)label.size();
+            if (lp < 0) lp = 0;
+
+            // first line
+            int vp0 = 50 - (int)valueLines[0].size();
+            if (vp0 < 0) vp0 = 0;
+            std::cout << rbp << GREEN << "|" << RESET
+                      << " " << YELLOW << BOLD << label << RESET
+                      << std::string(lp, ' ')
+                      << GREEN << "|" << RESET
+                      << " " << valueColor << valueLines[0] << RESET
+                      << std::string(vp0, ' ')
+                      << GREEN << "|" << RESET << "\n";
+
+            // continuation lines
+            for (int i = 1; i < (int)valueLines.size(); i++) {
+                int vp = 50 - (int)valueLines[i].size();
+                if (vp < 0) vp = 0;
+                std::cout << rbp << GREEN << "|" << RESET
+                          << " " << std::string(15, ' ')
+                          << GREEN << "|" << RESET
+                          << " " << valueColor << valueLines[i] << RESET
+                          << std::string(vp, ' ')
+                          << GREEN << "|" << RESET << "\n";
+            }
+        };
+
+        std::cout << rbp << GREEN << "+" << std::string(68, '=') << "+" << RESET << "\n";
+        std::cout << rbp << GREEN << "|" << RESET
+                  << BOLD << GREEN
+                  << "                    Entry Summary                    "
+                  << "               " << RESET
+                  << GREEN << "|" << RESET << "\n";
+        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("ID",     std::to_string(cat.entries.back().id),  WHITE);
+        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Title",  e.title,                                WHITE);
+        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Genre",  e.genre.empty() ? "-" : e.genre,       WHITE);
+        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Year",   yr,                                     WHITE);
+        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Rating", std::to_string((int)e.rating) + "/10", ratingColor);
+        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Status", st,                                     statusColor);
+        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Notes",  e.notes.empty() ? "-" : e.notes,       WHITE);
+        std::cout << rbp << GREEN << "+" << std::string(68, '=') << "+" << RESET << "\n\n";
     }
-    std::cout << YELLOW << BOLD << "  Press Enter to go back to main menu..." << RESET;
+
+    std::cout << YELLOW << BOLD
+              << centerPad("Press Enter to go back to main menu...") << RESET;
     while (_getch() != '\r') {}
     system("cls");
 }
@@ -909,7 +1391,7 @@ static void printMenu(const std::string& username) {
     hline('-');
     row("5", "Delete", "Remove an entry",      CYAN);
     hline('-');
-    row("6", "OMDb",   "Fetch from OMDb",      YELLOW);
+    row("6", "Search", "Search movie online",   YELLOW);
     hline('-');
     row("7", "Stats",  "View statistics",      CYAN);
     hline('-');
@@ -982,10 +1464,12 @@ static std::string authScreen() {
         int choice = -1;
         try { choice = std::stoi(choiceStr); } catch (...) { choice = -1; }
         if (choice < 0 || choice > 2) {
-        std::cout << "\n" << sp << RED << BOLD
-              << "[\xe2\x9c\x96] Invalid option! Please choose 0, 1, or 2." << RESET << "\n\n";
-    continue;
-}
+            std::cout << "\n" << sp << RED << BOLD
+                      << "[\xe2\x9c\x96] Invalid option! Please choose 0, 1, or 2." << RESET << "\n\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            system("cls");
+            continue;
+        }
 
 if (choice == 0) {
     printGoodbye();
