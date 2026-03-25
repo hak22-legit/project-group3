@@ -32,7 +32,7 @@
 #define WHITE       "\033[37m"
 #define BG_BLUE     "\033[44m"
 #define BG_GREY     "\033[100m"
-// ────────────────────────────────────────────────────────────────────────────
+
 
 static int getTermWidth() {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -96,7 +96,7 @@ static void printLoading(const std::string& msg = "Loading") {
     std::cout << "\n" << sp << GREEN << BOLD << "Done!" << RESET << "\n\n";
 }
 
-// ✅ AFTER — use getTermWidth()
+
 static void printCentered(const std::string& text) {
     int termWidth = getTermWidth();
     int pad = (termWidth - (int)text.size()) / 2;
@@ -112,7 +112,7 @@ static void printAnimated(const std::string& text, int delayMs = 50) {
     std::cout << "\n";
 }
 
-// ✅ AFTER — use getTermWidth()
+
 static void printTitle() {
     auto center = [&](const std::string& s) {
         int pad = (getTermWidth() - (int)s.size()) / 2;
@@ -130,7 +130,7 @@ static void printTitle() {
     center("################################################################################");
     std::cout << RESET << "\n";
     std::cout << GREEN;
-    int pad = (getTermWidth() - 28) / 2;         // ✅ dynamic — 28 = length of the text
+    int pad = (getTermWidth() - 28) / 2;         
     if (pad < 0) pad = 0;
     std::cout << std::string(pad, ' ');
     printAnimated("Developed by Pre-Gen6 Group3", 60);
@@ -189,7 +189,7 @@ static void doList(const Catalog& cat) {
     cl(" ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝     ╚══════╝╚═╝╚══════╝   ╚═╝   ", 90);
     std::cout << RESET << "\n";
 
-    // ── sort prompt ───────────────────────────────
+
     int termW2 = getTermWidth();
     int boxW   = 35;
     int bpad   = (termW2 - boxW) / 2;
@@ -238,7 +238,7 @@ static void doList(const Catalog& cat) {
 
     system("cls");
 
-    // ── print ASCII again after cls ───────────────
+    
     std::cout << "\n" << CYAN << BOLD;
     cl(" ██████╗ █████╗ ████████╗ █████╗ ██╗      ██████╗  ██████╗      ██╗     ██╗███████╗████████╗", 90);
     cl("██╔════╝██╔══██╗╚══██╔══╝██╔══██╗██║     ██╔═══██╗██╔════╝      ██║     ██║██╔════╝╚══██╔══╝", 90);
@@ -269,7 +269,7 @@ static void doView(Catalog& cat) {
         std::cout << std::string(p, ' ') << s << "\n";
     };
 
-    // ── reprint lambda — passed to inputInt ───────
+    
     // this reprints the ASCII header after cls on wrong input
     auto reprintHeader = [&]() {
         std::cout << "\n" << GREEN << BOLD;
@@ -285,8 +285,6 @@ static void doView(Catalog& cat) {
     // ── print ASCII header first time ─────────────
     reprintHeader();
 
-    // ── entry ID input — passes reprintHeader ─────
-    // ✅ on wrong input: cls → reprintHeader() → error → prompt again
     int id = inputInt(centerPad("Entry ID: "), 1, 99999, reprintHeader);
 
     // ── find entry ────────────────────────────────
@@ -344,7 +342,7 @@ static void doAdd(Catalog& cat) {
         std::cout << std::string(p, ' ') << s << "\n";
     };
 
-    // ── ASCII ADD NEW ENTRY ───────────────────────
+    
     auto reprintHeader = [&]() {
         std::cout << "\n" << YELLOW << BOLD;
         cl(" █████╗ ██████╗ ██████╗     ███╗   ██╗███████╗██╗    ██╗    ███████╗███╗   ██╗████████╗██████╗ ██╗   ██╗", 103);
@@ -1424,13 +1422,13 @@ static void printAdminMenu() {
 }
 
 // ─── Menu ────────────────────────────────────────────────────────────────────
-// ✅ AFTER
+
 static void printMenu(const std::string& username) {
     std::cout << "\n";
 
     // ── ASCII title centered ──────────────────────
     int termW = getTermWidth();
-    int asciiW = 78;  // actual width of the ASCII art lines above
+    int asciiW = 78;  
     int asciiPad = (termW - asciiW) / 2;
     if (asciiPad < 0) asciiPad = 0;
     std::string ap = std::string(asciiPad, ' ');
@@ -1726,7 +1724,7 @@ if (choice == 0) {
                 printRegisterSuccess(user);
             return *res;
 }       
-            // ✅ show correct reason
+           
             if (user.empty() || pass.empty())
                 std::cout << "\n" << sp << RED << BOLD
                           << "[!!] Username and password cannot be empty." << RESET << "\n\n";
