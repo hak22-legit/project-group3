@@ -112,8 +112,45 @@ static void printAnimated(const std::string& text, int delayMs = 50) {
     std::cout << "\n";
 }
 
-
 static void printTitle() {
+    system("cls");
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    std::cout << "\n\n";
+
+    // ── ISTAD ─────────────────────────────────────
+    std::cout << BLUE << BOLD;
+    cl("██╗███████╗████████╗ █████╗ ██████╗", 35);
+    cl("██║██╔════╝╚══██╔══╝██╔══██╗██╔══██╗", 35);
+    cl("██║███████╗   ██║   ███████║██║  ██║", 35);
+    cl("██║╚════██║   ██║   ██╔══██║██║  ██║", 35);
+    cl("██║███████║   ██║   ██║  ██║██████╔╝", 35);
+    cl("╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═════╝ ", 35);
+    std::cout << RESET << "\n";
+
+    // ── PRE GEN6 ──────────────────────────────────
+    std::cout << RED << BOLD;
+    cl("██████╗ ██████╗ ███████╗     ██████╗ ███████╗███╗   ██╗╔██████╗", 65);
+    cl("██╔══██╗██╔══██╗██╔════╝    ██╔════╝ ██╔════╝████╗  ██║██╔════╝", 65);
+    cl("██████╔╝██████╔╝█████╗      ██║  ███╗█████╗  ██╔██╗ ██║███████╗", 65);
+    cl("██╔═══╝ ██╔══██╗██╔══╝      ██║   ██║██╔══╝  ██║╚██╗██║██║  ██║", 65);
+    cl("██║     ██║  ██║███████╗    ╚██████╔╝███████╗██║ ╚████║███████║", 65);
+    cl("╚═╝     ╚═╝  ╚═╝╚══════╝     ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚══════╝", 65);
+    std::cout << RESET << "\n\n";
+
+    std::cout << "\n\n";
+    std::cout << YELLOW << BOLD
+              << centerPad("") << RESET;
+    while (_getch() != '\r') {}
+
+    // ── Step 2: Clear and show Media Catalog ──────
+    system("cls");
+
     auto center = [&](const std::string& s) {
         int pad = (getTermWidth() - (int)s.size()) / 2;
         if (pad < 0) pad = 0;
@@ -125,7 +162,7 @@ static void printTitle() {
     center("#                                                                              #");
     center("#                           MEDIA CATALOG MANAGER                              #");
     center("#                                                                              #");
-    center("#                        Your personal movie tracker                           #");
+    center("#                        Your personal movie catalog                           #");
     center("#                                                                              #");
     center("################################################################################");
     std::cout << RESET << "\n";
@@ -1203,15 +1240,37 @@ static void doStats(const Catalog& cat) {
 
 // ─── Admin ───────────────────────────────────────────────────────────────────
 static void adminViewUsers() {
-    printHeader(">>", "ALL USERS");
+    system("cls");
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    // ── ASCII header ──────────────────────────────
+    std::cout << "\n" << CYAN << BOLD;
+    cl(" █████╗ ██╗     ██╗       ██╗   ██╗███████╗███████╗██████╗ ███████╗", 67);
+    cl("██╔══██╗██║     ██║       ██║   ██║██╔════╝██╔════╝██╔══██╗██╔════╝", 67);
+    cl("███████║██║     ██║       ██║   ██║███████╗█████╗  ██████╔╝███████╗", 67);
+    cl("██╔══██║██║     ██║       ██║   ██║╚════██║██╔══╝  ██╔══██╗╚════██║", 67);
+    cl("██║  ██║███████╗███████╗  ╚██████╔╝███████║███████╗██║  ██║███████║", 67);
+    cl("╚═╝  ╚═╝╚══════╝╚══════╝   ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝", 67);
+    std::cout << RESET << "\n";
+
     auto users = getAllUsers();
     if (users.empty()) {
-        std::cout << RED << "  No users found.\n" << RESET;
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("No users found.") << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
         return;
     }
 
-    int tableW  = 30;                          // 6 + 20 + 4 borders
-    int menuPad = (getTermWidth() - tableW) / 2;
+    int tableW  = 32;
+    int menuPad = (termW - tableW) / 2;
     if (menuPad < 0) menuPad = 0;
     std::string sp = std::string(menuPad, ' ');
 
@@ -1237,7 +1296,7 @@ static void adminViewUsers() {
     hline('=');
     int displayNum = 1;
     for (int i = 0; i < (int)users.size(); i++) {
-        if (users[i] == "admin") continue;           // ✅ skip admin
+        if (users[i] == "admin") continue;
         row(std::to_string(displayNum++), users[i]);
         hline('-');
     }
@@ -1245,118 +1304,200 @@ static void adminViewUsers() {
     int realCount = 0;
     for (auto& u : users)
         if (u != "admin") realCount++;
-    std::cout << "\n" << YELLOW << BOLD << "  Total users: " << realCount << RESET << "\n\n";
 
-    std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
+    std::cout << "\n" << YELLOW << BOLD
+              << centerPad("Total users: " + std::to_string(realCount))
+              << RESET << "\n\n";
+    std::cout << YELLOW << BOLD
+              << centerPad("Press Enter to go back...") << RESET;
     while (_getch() != '\r') {}
     system("cls");
 }
 
 static void adminViewAllCatalogs() {
-    printHeader(">>", "ALL CATALOGS");
+    system("cls");
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    std::cout << "\n" << YELLOW << BOLD;
+    cl(" █████╗ ██╗     ██╗       ██████╗ █████╗ ████████╗ █████╗ ██╗      ██████╗  ██████╗ ", 83);
+    cl("██╔══██╗██║     ██║      ██╔════╝██╔══██╗╚══██╔══╝██╔══██╗██║     ██╔═══██╗██╔════╝ ", 83);
+    cl("███████║██║     ██║      ██║     ███████║   ██║   ███████║██║     ██║   ██║██║  ███╗ ", 83);
+    cl("██╔══██║██║     ██║      ██║     ██╔══██║   ██║   ██╔══██║██║     ██║   ██║██║   ██║ ", 83);
+    cl("██║  ██║███████╗███████╗ ╚██████╗██║  ██║   ██║   ██║  ██║███████╗╚██████╔╝╚██████╔╝ ", 83);
+    cl("╚═╝  ╚═╝╚══════╝╚══════╝  ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ", 83);
+    std::cout << RESET << "\n";
+
     auto users = getAllUsers();
     if (users.empty()) {
-        std::cout << RED << "  No users found.\n" << RESET;
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("No users found.") << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
         return;
     }
 
     for (const auto& user : users) {
         if (user == "admin") continue;
         Catalog cat = loadCatalog(user);
-        std::cout << BOLD << YELLOW << "  User: " << CYAN << user
-                  << YELLOW << " (" << cat.entries.size() << " entries)"
+        std::cout << BOLD << YELLOW
+                  << centerPad("User: " + user + " (" + std::to_string(cat.entries.size()) + " entries)")
                   << RESET << "\n\n";
         if (cat.entries.empty()) {
-            std::cout << DIM << "  No entries.\n\n" << RESET;
+            std::cout << DIM << centerPad("No entries.") << RESET << "\n\n";
         } else {
             printTable(cat.entries, user);
         }
         std::cout << "\n";
     }
 
-    std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
+    std::cout << YELLOW << BOLD
+              << centerPad("Press Enter to go back...") << RESET;
     while (_getch() != '\r') {}
     system("cls");
 }
 
 static void adminResetPassword() {
-    printHeader(">>", "RESET USER PASSWORD");
+    system("cls");
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    std::cout << "\n" << MAGENTA << BOLD;
+    cl("██████╗ ███████╗███████╗███████╗████████╗    ██████╗  █████╗ ███████╗███████╗", 79);
+    cl("██╔══██╗██╔════╝██╔════╝██╔════╝╚══██╔══╝    ██╔══██╗██╔══██╗██╔════╝██╔════╝", 79);
+    cl("██████╔╝█████╗  ███████╗█████╗     ██║       ██████╔╝███████║███████╗███████╗", 79);
+    cl("██╔══██╗██╔══╝  ╚════██║██╔══╝     ██║       ██╔═══╝ ██╔══██║╚════██║╚════██║", 79);
+    cl("██║  ██║███████╗███████║███████╗   ██║       ██║     ██║  ██║███████║███████║", 79);
+    cl("╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝   ╚═╝       ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝", 79);
+    std::cout << RESET << "\n";
 
     auto users = getAllUsers();
     if (users.empty()) {
-        std::cout << RED << "  No users found.\n" << RESET;
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("No users found.") << RESET << "\n\n";
         return;
     }
 
-    std::cout << CYAN << "  Available users:\n" << RESET;
+    std::cout << "\n" << CYAN << BOLD
+              << centerPad("Available users:") << RESET << "\n\n";
     for (int i = 0; i < (int)users.size(); i++) {
         if (users[i] == "admin") continue;
-        std::cout << "  " << CYAN << i + 1 << ". " << users[i] << RESET << "\n";
+        std::cout << centerPad(std::to_string(i + 1) + ". " + users[i]) << "\n";
     }
     std::cout << "\n";
 
     std::string username = inputLine(centerPad("Enter username to reset : "));
     auto it = std::find(users.begin(), users.end(), username);
     if (it == users.end()) {
-        std::cout << RED << BOLD << "  User not found.\n" << RESET;
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("User not found.") << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
         return;
     }
 
-    std::string newPass  = inputLine(centerPad("Enter new password      : "));
+    std::string newPass = inputLine(centerPad("Enter new password      : "));
     if (resetPassword(username, newPass)) {
         std::cout << "\n" << GREEN << BOLD
-                  << "  [\xe2\x9c\x94] Password reset successfully for " << username
+                  << centerPad("[\xe2\x9c\x94] Password reset successfully for " + username)
                   << RESET << "\n\n";
     } else {
-        std::cout << RED << BOLD << "  [\xe2\x9c\x96] Failed to reset password.\n" << RESET;
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("[\xe2\x9c\x96] Failed to reset password.")
+                  << RESET << "\n\n";
     }
 
-    std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
+    std::cout << YELLOW << BOLD
+              << centerPad("Press Enter to go back...") << RESET;
     while (_getch() != '\r') {}
     system("cls");
 }
+
 static void adminDeleteUser() {
-    printHeader(">>", "DELETE USER ACCOUNT");
+    system("cls");
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    std::cout << "\n" << RED << BOLD;
+    cl("██████╗ ███████╗██╗     ███████╗████████╗███████╗    ██╗   ██╗███████╗███████╗██████╗ ", 83);
+    cl("██╔══██╗██╔════╝██║     ██╔════╝╚══██╔══╝██╔════╝    ██║   ██║██╔════╝██╔════╝██╔══██╗", 83);
+    cl("██║  ██║█████╗  ██║     █████╗     ██║   █████╗      ██║   ██║███████╗█████╗  ██████╔╝", 83);
+    cl("██║  ██║██╔══╝  ██║     ██╔══╝     ██║   ██╔══╝      ██║   ██║╚════██║██╔══╝  ██╔══██╗", 83);
+    cl("██████╔╝███████╗███████╗███████╗   ██║   ███████╗    ╚██████╔╝███████║███████╗██║  ██║", 83);
+    cl("╚═════╝ ╚══════╝╚══════╝╚══════╝   ╚═╝   ╚══════╝     ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝", 83);
+    std::cout << RESET << "\n";
 
     auto users = getAllUsers();
     if (users.empty()) {
-        std::cout << RED << "  No users found.\n" << RESET;
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("No users found.") << RESET << "\n\n";
         return;
     }
 
-    std::cout << CYAN << "  Available users:\n" << RESET;
+    std::cout << "\n" << CYAN << BOLD
+              << centerPad("Available users:") << RESET << "\n\n";
     for (int i = 0; i < (int)users.size(); i++) {
         if (users[i] == "admin") continue;
-        std::cout << "  " << CYAN << i + 1 << ". " << users[i] << RESET << "\n";
+        std::cout << centerPad(std::to_string(i + 1) + ". " + users[i]) << "\n";
     }
     std::cout << "\n";
 
     std::string username = inputLine(centerPad("Enter username to delete : "));
 
     if (username == "admin") {
-        std::cout << RED << BOLD << "  Cannot delete admin account.\n" << RESET;
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("Cannot delete admin account.") << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
         return;
     }
 
     auto it = std::find(users.begin(), users.end(), username);
     if (it == users.end()) {
-        std::cout << RED << BOLD << "  User not found.\n" << RESET;
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("User not found.") << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
         return;
     }
 
     if (inputYN(centerPad("Are you sure you want to delete " + username + "?"))) {
         if (deleteUser(username)) {
             std::cout << "\n" << GREEN << BOLD
-                      << "  [\xe2\x9c\x94] User " << username << " deleted successfully."
+                      << centerPad("[\xe2\x9c\x94] User " + username + " deleted successfully.")
                       << RESET << "\n\n";
         } else {
-            std::cout << RED << BOLD << "  [\xe2\x9c\x96] Failed to delete user.\n" << RESET;
+            std::cout << "\n" << RED << BOLD
+                      << centerPad("[\xe2\x9c\x96] Failed to delete user.")
+                      << RESET << "\n\n";
         }
     } else {
-        std::cout << YELLOW << "  Cancelled.\n" << RESET;
+        std::cout << "\n" << YELLOW << BOLD
+                  << centerPad("Cancelled.") << RESET << "\n\n";
     }
 
-    std::cout << YELLOW << BOLD << "  Press Enter to go back..." << RESET;
+    std::cout << YELLOW << BOLD
+              << centerPad("Press Enter to go back...") << RESET;
     while (_getch() != '\r') {}
     system("cls");
 }
@@ -1757,8 +1898,8 @@ int main() {
     registerUser("admin", "admin123");
     printTitle();
 
-    std::cout << centerPad("Press Enter to continue...") << YELLOW << BOLD;
-    std::cout << RESET;
+    // std::cout << centerPad("Press Enter to continue...") << YELLOW << BOLD;
+    // std::cout << RESET;
     while (_getch() != '\r') {}
     system("cls");
     while (true) {
