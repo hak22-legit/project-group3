@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
+#include <chrono>
+#include <thread>
 #include <tabulate/tabulate.hpp>
 #ifdef _WIN32
 #include <windows.h>
@@ -237,25 +239,45 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
     std::cout << "\n";
 
     // ── pick prompt ───────────────────────────────
-    int pick = -1;
-    std::string err = "";
+   int pick = -1;
     while (pick < 0 || pick > (int)results.size()) {
-        if (!err.empty()) {
-            std::cout << RED << BOLD
-                      << centerPadOMDb(err) << RESET << "\n";
-        }
         std::cout << CYAN << BOLD
                   << centerPadOMDb("Pick a result (0-"
                      + std::to_string(results.size()) + "): ")
                   << RESET;
         std::string s;
         std::getline(std::cin, s);
-        try { pick = std::stoi(s); } catch (...) {}
-        if (pick < 0 || pick > (int)results.size())
-            err = "Please enter a number between 0 and "
-                + std::to_string(results.size()) + ".";
-        else
-            err = "";
+        try { pick = std::stoi(s); } catch (...) { pick = -1; }
+        if (pick < 0 || pick > (int)results.size()) {
+            std::cout << "\n" << RED << BOLD
+                      << centerPadOMDb("Invalid choice! Please enter 0 to "
+                         + std::to_string(results.size()) + ".")
+                      << RESET << "\n\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            system("cls");
+
+            // reprint table after cls
+            std::cout << "\n";
+            rHline('=', CYAN);
+            rRow("#", "Title", "Year", "Type",
+                 BOLD WHITE, BOLD WHITE, BOLD WHITE, BOLD WHITE, CYAN);
+            rHline('=', CYAN);
+            rRow("0", "Cancel", "-", "-",
+                 RED, RED, RED, RED, MAGENTA);
+            rHline('-', MAGENTA);
+            for (int i = 0; i < (int)results.size(); i++) {
+                rRow(std::to_string(i + 1),
+                     results[i].title,
+                     results[i].year,
+                     results[i].type,
+                     CYAN, CYAN, YELLOW, GREEN, MAGENTA);
+                if (i < (int)results.size() - 1)
+                    rHline('-', MAGENTA);
+            }
+            rHline('=', CYAN);
+            std::cout << "\n";
+            pick = -1;
+        }
     }
 
     if (pick == 0) return std::nullopt;

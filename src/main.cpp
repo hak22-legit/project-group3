@@ -48,19 +48,30 @@ static std::string centerPad(const std::string& text, int termWidth = -1) {
 }
 
 static void printGoodbye() {
-    std::cout << "\n\n";
+    system("cls");
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    std::cout << "\n\n\n";
     std::cout << RED << BOLD;
-    std::cout << "   ██████╗  ██████╗  ██████╗ ██████╗ ██████╗ ██╗   ██╗███████╗██╗\n";
-    std::cout << "  ██╔════╝ ██╔═══██╗██╔═══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝██╔════╝██║\n";
-    std::cout << "  ██║  ███╗██║   ██║██║   ██║██║  ██║██████╔╝ ╚████╔╝ █████╗  ██║\n";
-    std::cout << "  ██║   ██║██║   ██║██║   ██║██║  ██║██╔══██╗  ╚██╔╝  ██╔══╝  ╚═╝\n";
-    std::cout << "  ╚██████╔╝╚██████╔╝╚██████╔╝██████╔╝██████╔╝   ██║   ███████╗██╗\n";
-    std::cout << "   ╚═════╝  ╚═════╝  ╚═════╝ ╚═════╝ ╚═════╝    ╚═╝   ╚══════╝╚═╝\n";
-    std::cout << RESET << "\n";
-    std::cout << YELLOW << BOLD;
-    std::cout << "              Thanks for using Movie catalog!\n";
-    std::cout << "                    See you next time :)\n";
+    cl(" ██████╗  ██████╗  ██████╗ ██████╗ ██████╗ ██╗   ██╗███████╗██╗", 65);
+    cl("██╔════╝ ██╔═══██╗██╔═══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝██╔════╝██║", 65);
+    cl("██║  ███╗██║   ██║██║   ██║██║  ██║██████╔╝ ╚████╔╝ █████╗  ██║", 65);
+    cl("██║   ██║██║   ██║██║   ██║██║  ██║██╔══██╗  ╚██╔╝  ██╔══╝  ╚═╝", 65);
+    cl("╚██████╔╝╚██████╔╝╚██████╔╝██████╔╝██████╔╝   ██║   ███████╗██╗", 65);
+    cl(" ╚═════╝  ╚═════╝  ╚═════╝ ╚═════╝ ╚═════╝    ╚═╝   ╚══════╝╚═╝", 65);
     std::cout << RESET << "\n\n";
+
+    std::cout << YELLOW << BOLD;
+    cl("Thanks for using Movie Catalog!", 31);
+    cl("See you next time :)",           20);
+    std::cout << RESET << "\n\n";
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
 
 static void printLoading(const std::string& msg = "Loading") {
@@ -769,14 +780,14 @@ static void doOMDb(Catalog& cat) {
     std::cout << bp << MAGENTA << "|" << RESET
               << " " << YELLOW << BOLD << "Title          " << RESET
               << MAGENTA << "|" << RESET
-              << " " << WHITE  << "Enter movie title to search    " << RESET
+              << " " << WHITE  << "Enter movie title to search     " << RESET
               << MAGENTA << "|" << RESET << "\n";
     std::cout << bp << MAGENTA << "+" << std::string(16, '-')
               << "+" << std::string(33, '-') << "+" << RESET << "\n";
     std::cout << bp << MAGENTA << "|" << RESET
               << " " << YELLOW << BOLD << "Year           " << RESET
               << MAGENTA << "|" << RESET
-              << " " << WHITE  << "Release year or 0 to skip      " << RESET
+              << " " << WHITE  << "Release year or 0 to skip       " << RESET
               << MAGENTA << "|" << RESET << "\n";
     std::cout << bp << MAGENTA << "+" << std::string(50, '=') << "+" << RESET << "\n\n";
 
@@ -986,18 +997,44 @@ static void doOMDb(Catalog& cat) {
 
 // ─── Stats ───────────────────────────────────────────────────────────────────
 static void doStats(const Catalog& cat) {
-    printHeader(">>", "CATALOG STATISTICS");
+    system("cls");
+
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    // ── ASCII STATISTICS ──────────────────────────
+    auto reprintHeader = [&]() {
+        std::cout << "\n" << YELLOW << BOLD;
+        cl("███████╗████████╗ █████╗ ████████╗██╗███████╗████████╗██╗ ██████╗███████╗", 74);
+        cl("██╔════╝╚══██╔══╝██╔══██╗╚══██╔══╝██║██╔════╝╚══██╔══╝██║██╔════╝██╔════╝", 74);
+        cl("███████╗   ██║   ███████║   ██║   ██║███████╗   ██║   ██║██║     ███████╗", 74);
+        cl("╚════██║   ██║   ██╔══██║   ██║   ██║╚════██║   ██║   ██║██║     ╚════██║", 74);
+        cl("███████║   ██║   ██║  ██║   ██║   ██║███████║   ██║   ██║╚██████╗███████║", 74);
+        cl("╚══════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚═╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝╚══════╝", 74);
+        std::cout << RESET << "\n";
+    };
+
+    reprintHeader();
 
     if (cat.entries.empty()) {
-        std::cout << RED << "  No entries in catalog yet.\n" << RESET;
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("No entries in catalog yet.") << RESET << "\n\n";
+        std::cout << YELLOW << BOLD
+                  << centerPad("Press Enter to go back...") << RESET;
+        while (_getch() != '\r') {}
+        system("cls");
         return;
     }
 
-    // ✅ New — requires only 1 enter
-     auto pressEnter = [](const std::string& msg = "  Press Enter to continue...") {
-        std::cout << YELLOW << msg << RESET;
+    auto pressEnter = [&](const std::string& msg = "Press Enter to continue...") {
+        std::cout << "\n" << YELLOW << BOLD << centerPad(msg) << RESET;
         while (_getch() != '\r') {}
-        std::cout << "\n";
+        system("cls");
+        reprintHeader();
     };
 
     int total       = (int)cat.entries.size();
@@ -1015,72 +1052,129 @@ static void doStats(const Catalog& cat) {
     }
     float avgRating = total > 0 ? sumRating / total : 0.0f;
 
-    // ── 1. Overview ──────────────────────────────────
-    std::cout << BOLD << YELLOW << "  1. Overview\n" << RESET;
-    printDivider(44);
+    // ── table box centered ─────────────────────────
+    int boxW  = 52;
+    int bpad  = (termW - boxW) / 2;
+    if (bpad < 0) bpad = 0;
+    std::string bp = std::string(bpad, ' ');
 
-    tabulate::Table overview;
-    overview.add_row({"Stat",           "Value"});
-    overview.add_row({"Total Entries",  std::to_string(total)});
-    overview.add_row({"Movies",         std::to_string(movies)});
-    overview.add_row({"Watched / Read", std::to_string(watched)});
-    overview.add_row({"Average Rating", std::to_string(avgRating).substr(0,4) + " / 10"});
-    overview.add_row({"Highest Rated",  topTitle + " (" + std::to_string(maxRating).substr(0,3) + ")"});
-    overview.column(0).format().width(18);
-    overview.column(1).format().width(30);
-    overview.row(0).format().font_style({tabulate::FontStyle::bold});
-    std::cout << "\n" << overview << "\n\n";
+    auto hline = [&](char fill) {
+        std::cout << bp << MAGENTA
+                  << "+" << std::string(20, fill)
+                  << "+" << std::string(30, fill)
+                  << "+" << RESET << "\n";
+    };
+
+    auto srow = [&](const std::string& label,
+                    const std::string& value,
+                    const std::string& valueColor) {
+        int lp = 19 - (int)label.size();
+        int vp = 29 - (int)value.size();
+        if (lp < 0) lp = 0;
+        if (vp < 0) vp = 0;
+        std::cout << bp << MAGENTA << "|" << RESET
+                  << " " << YELLOW << BOLD << label << RESET
+                  << std::string(lp, ' ')
+                  << MAGENTA << "|" << RESET
+                  << " " << valueColor << value << RESET
+                  << std::string(vp, ' ')
+                  << MAGENTA << "|" << RESET << "\n";
+    };
+
+    // ── 1. Overview ──────────────────────────────────
+    std::cout << "\n" << bp << BOLD << YELLOW << "1. Overview" << RESET << "\n";
+    hline('=');
+    srow("Stat", "Value", WHITE);
+    hline('=');
+    srow("Total Entries",  std::to_string(total),                             CYAN);
+    hline('-');
+    srow("Movies",         std::to_string(movies),                            CYAN);
+    hline('-');
+    srow("Watched / Read", std::to_string(watched),                           CYAN);
+    hline('-');
+    srow("Average Rating", std::to_string(avgRating).substr(0,4) + " / 10",  GREEN);
+    hline('-');
+    srow("Highest Rated",  topTitle + " (" + std::to_string(maxRating).substr(0,3) + ")", YELLOW);
+    hline('=');
+
     pressEnter();
 
     // ── 2. Watch Progress ────────────────────────────
-    std::cout << BOLD << YELLOW << "  2. Watch Progress\n" << RESET;
-    printDivider(44);
+    std::cout << "\n" << bp << BOLD << YELLOW << "2. Watch Progress" << RESET << "\n\n";
 
-    int pct    = (watched * 100) / total;
+    int pct    = total > 0 ? (watched * 100) / total : 0;
     int filled = (pct * 30) / 100;
     std::string bar;
     for (int i = 0; i < filled; i++)  bar += "\xe2\x96\x88";
     for (int i = filled; i < 30; i++) bar += "\xe2\x96\x91";
 
-    std::cout << "\n  " << GREEN << bar   << RESET
-              << "  "   << BOLD  << pct   << "%" << RESET
-              << "  ("  << GREEN << watched << RESET
-              << "/"    << total << " watched)\n\n";
+    std::cout << bp << "  " << GREEN << bar << RESET
+              << "  " << BOLD << pct << "%" << RESET
+              << "  (" << GREEN << watched << RESET
+              << "/" << total << " watched)\n";
+
     pressEnter();
 
     // ── 3. Top 5 Rated ───────────────────────────────
-    std::cout << BOLD << YELLOW << "  3. Top 5 Rated\n" << RESET;
-    printDivider(44);
+    std::cout << "\n" << bp << BOLD << YELLOW << "3. Top 5 Rated" << RESET << "\n\n";
 
     auto sorted = cat.entries;
     std::sort(sorted.begin(), sorted.end(), [](const Entry& a, const Entry& b){
         return a.rating > b.rating;
     });
 
-    tabulate::Table top;
-    top.add_row({"Rank", "Title", "Type", "Rating"});
-    top.row(0).format().font_style({tabulate::FontStyle::bold});
-    top.column(0).format().width(6);
-    top.column(1).format().width(26);
-    top.column(2).format().width(8);
-    top.column(3).format().width(8);
+    int topBoxW  = 52;
+    int topBpad  = (termW - topBoxW) / 2;
+    if (topBpad < 0) topBpad = 0;
+    std::string tbp = std::string(topBpad, ' ');
 
+    auto tHline = [&](char fill) {
+        std::cout << tbp << MAGENTA
+                  << "+" << std::string(7, fill)
+                  << "+" << std::string(27, fill)
+                  << "+" << std::string(9, fill)
+                  << "+" << std::string(9, fill)
+                  << "+" << RESET << "\n";
+    };
+
+    auto tRow = [&](const std::string& rank, const std::string& title,
+                    const std::string& type, const std::string& rating,
+                    const std::string& color) {
+        std::string pr = rank  + std::string(5  - (int)rank.size(),  ' ');
+        std::string pt = title + std::string(25 - (int)title.size(), ' ');
+        std::string px = type  + std::string(7  - (int)type.size(),  ' ');
+        std::string pg = rating+ std::string(7  - (int)rating.size(),' ');
+        std::cout << tbp << MAGENTA << "|" << RESET
+                  << " " << color << pr << RESET << " "
+                  << MAGENTA << "|" << RESET
+                  << " " << color << pt << RESET << " "
+                  << MAGENTA << "|" << RESET
+                  << " " << color << px << RESET << " "
+                  << MAGENTA << "|" << RESET
+                  << " " << color << pg << RESET << " "
+                  << MAGENTA << "|" << RESET << "\n";
+    };
+
+    tHline('=');
+    tRow("Rank", "Title", "Type", "Rating", WHITE);
+    tHline('=');
     int limit = std::min((int)sorted.size(), 5);
     for (int i = 0; i < limit; i++) {
         auto& e = sorted[i];
-        top.add_row({
-            "#" + std::to_string(i + 1),
-            e.title,
-            e.type == MediaType::Movie ? "Movie" : "Book",
-            std::to_string(e.rating).substr(0, 3) + "/10"
-        });
+        std::string ratingColor = e.rating >= 7.0f ? GREEN : e.rating >= 5.0f ? YELLOW : RED;
+        tRow("#" + std::to_string(i + 1),
+             e.title.size() > 24 ? e.title.substr(0, 22) + ".." : e.title,
+             e.type == MediaType::Movie ? "Movie" : "Book",
+             std::to_string(e.rating).substr(0, 3) + "/10",
+             ratingColor);
+        if (i < limit - 1) tHline('-');
     }
-    std::cout << "\n" << top << "\n\n";
+    tHline('=');
+
     pressEnter();
 
     // ── 4. Rating Distribution ───────────────────────
-    std::cout << BOLD << YELLOW << "  4. Rating Distribution\n" << RESET;
-    printDivider(44);
+    std::cout << "\n" << bp << BOLD << YELLOW << "4. Rating Distribution" << RESET << "\n\n";
 
     int cnt1=0, cnt2=0, cnt3=0, cnt4=0;
     for (const auto& e : cat.entries) {
@@ -1090,21 +1184,21 @@ static void doStats(const Catalog& cat) {
         else                       cnt1++;
     }
 
-    auto printBar = [](const std::string& label, int cnt, const std::string& color) {
+    auto printBar = [&](const std::string& label, int cnt, const std::string& color) {
         std::string chart;
         for (int i = 0; i < cnt * 4; i++) chart += "\xe2\x96\x88";
-        std::cout << "  " << color << label << RESET
+        std::cout << bp << "  " << color << label << RESET
                   << "  |" << color << chart << RESET
                   << "  " << cnt << "\n";
     };
 
-    std::cout << "\n";
     printBar("1-4  (Low)  ", cnt1, RED);
     printBar("5-6  (Ok)   ", cnt2, YELLOW);
     printBar("7-8  (Good) ", cnt3, CYAN);
     printBar("9-10 (Great)", cnt4, GREEN);
-    std::cout << "\n";
-    std::cout << YELLOW << "  Press Enter to go back to main menu..." << RESET;
+
+    std::cout << "\n" << YELLOW << BOLD
+              << centerPad("Press Enter to go back to main menu...") << RESET;
     while (_getch() != '\r') {}
     system("cls");
 }
@@ -1403,6 +1497,88 @@ static void printMenu(const std::string& username) {
     std::cout << "\n";
 }
 
+static void printLoginSuccess(const std::string& username) {
+    system("cls");
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    std::cout << "\n\n";
+    std::cout << GREEN << BOLD;
+    cl("██╗      ██████╗  ██████╗ ██╗ ███╗   ██╗ ", 41);
+    cl("██║     ██╔═══██╗██╔════╝ ██║ ████╗  ██║ ", 41);
+    cl("██║     ██║   ██║██║  ███╗██║ ██╔██╗ ██║ ", 41);
+    cl("██║     ██║   ██║██║   ██║██║ ██║╚██╗██║ ", 41);
+    cl("███████╗╚██████╔╝╚██████╔╝██║ ██║ ╚████║ ", 41);
+    cl("╚══════╝ ╚═════╝  ╚═════╝ ╚═╝ ╚═╝  ╚═══╝ ", 41);
+    std::cout << RESET << "\n\n";
+
+    // loading bar first
+    printLoading("Logging in");
+
+    // welcome message box after done
+    int boxW = 50;
+    int bpad = (termW - boxW) / 2;
+    if (bpad < 0) bpad = 0;
+    std::string bp = std::string(bpad, ' ');
+
+    std::cout << bp << GREEN << "+" << std::string(48, '=') << "+" << RESET << "\n";
+    std::cout << bp << GREEN << "|" << RESET;
+    std::string msg = "  Welcome back,  " + username + "!";
+    int msgPad = 48 - (int)msg.size();
+    if (msgPad < 0) msgPad = 0;
+    std::cout << BOLD << GREEN << msg << std::string(msgPad, ' ') << RESET;
+    std::cout << GREEN << "|" << RESET << "\n";
+    std::cout << bp << GREEN << "+" << std::string(48, '=') << "+" << RESET << "\n\n";
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(800));
+    // system("cls");
+}
+
+static void printRegisterSuccess(const std::string& username) {
+    system("cls");
+    int termW = getTermWidth();
+    auto cl = [&](const std::string& s, int visualW) {
+        int p = (termW - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+    };
+
+    std::cout << "\n\n";
+    std::cout << CYAN << BOLD;
+    cl("██████╗ ███████╗ ██████╗ ██╗███████╗████████╗███████╗██████╗ ", 61);
+    cl("██╔══██╗██╔════╝██╔════╝ ██║██╔════╝╚══██╔══╝██╔════╝██╔══██╗", 61);
+    cl("██████╔╝█████╗  ██║  ███╗██║███████╗   ██║   █████╗  ██████╔╝", 61);
+    cl("██╔══██╗██╔══╝  ██║   ██║██║╚════██║   ██║   ██╔══╝  ██╔══██╗", 61);
+    cl("██║  ██║███████╗╚██████╔╝██║███████║   ██║   ███████╗██║  ██║", 61);
+    cl("╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝", 61);
+    std::cout << RESET << "\n\n";
+
+    printLoading("Setting up account");
+
+    int boxW = 50;
+    int bpad = (termW - boxW) / 2;
+    if (bpad < 0) bpad = 0;
+    std::string bp = std::string(bpad, ' ');
+
+    std::cout << bp << CYAN << "+" << std::string(48, '=') << "+" << RESET << "\n";
+    std::cout << bp << CYAN << "|" << RESET;
+    std::string msg = "  Account created! Welcome,  " + username + "!";
+    int msgPad = 48 - (int)msg.size();
+    if (msgPad < 0) msgPad = 0;
+    std::cout << BOLD << CYAN << msg << std::string(msgPad, ' ') << RESET;
+    std::cout << CYAN << "|" << RESET << "\n";
+    std::cout << bp << CYAN << "+" << std::string(48, '=') << "+" << RESET << "\n\n";
+
+    
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(800));
+    // system("cls");
+}
+
 // ─── Auth Screen ─────────────────────────────────────────────────────────────
 static std::string authScreen() {
     while (true) {
@@ -1478,8 +1654,34 @@ if (choice == 0) {
         std::cout << "\n";
 
         // ── Login / Register form centered ────────────
-        std::string formTitle = (choice == 1) ? "You choose login" : "You choose register";
-        std::cout << sp << BOLD << CYAN << "── " << formTitle << " ──" << RESET << "\n\n";
+        system("cls");
+    int termW2 = getTermWidth();
+    auto cl2 = [&](const std::string& s, int visualW) {
+        int p = (termW2 - visualW) / 2;
+        if (p < 0) p = 0;
+        std::cout << std::string(p, ' ') << s << "\n";
+};
+    
+    if (choice == 1) {
+        std::cout << "\n" << CYAN << BOLD;
+        cl2("██╗      ██████╗  ██████╗ ██╗███╗   ██╗", 41);
+        cl2("██║     ██╔═══██╗██╔════╝ ██║████╗  ██║", 41);
+        cl2("██║     ██║   ██║██║  ███╗██║██╔██╗ ██║", 41);
+        cl2("██║     ██║   ██║██║   ██║██║██║╚██╗██║", 41);
+        cl2("███████╗╚██████╔╝╚██████╔╝██║██║ ╚████║", 41);
+        cl2("╚══════╝ ╚═════╝  ╚═════╝ ╚═╝╚═╝  ╚═══╝", 41);
+        std::cout << RESET << "\n";
+} else {
+        std::cout << "\n" << MAGENTA << BOLD;
+        cl2("██████╗ ███████╗ ██████╗ ██╗███████╗████████╗███████╗██████╗ ", 61);
+        cl2("██╔══██╗██╔════╝██╔════╝ ██║██╔════╝╚══██╔══╝██╔════╝██╔══██╗", 61);
+        cl2("██████╔╝█████╗  ██║  ███╗██║███████╗   ██║   █████╗  ██████╔╝", 61);
+        cl2("██╔══██╗██╔══╝  ██║   ██║██║╚════██║   ██║   ██╔══╝  ██╔══██╗", 61);
+        cl2("██║  ██║███████╗╚██████╔╝██║███████║   ██║   ███████╗██║  ██║", 61);
+        cl2("╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝", 61);
+        std::cout << RESET << "\n";
+}
+    std::cout << "\n";
 
         std::cout << GREEN;
         std::cout << sp << "╭────────────────┬────────────────────────────╮\n";
@@ -1510,11 +1712,8 @@ if (choice == 0) {
         if (choice == 1) {
             auto res = loginUser(user, pass);
             if (res) {
-                printLoading("Logging in");
-                std::cout << "\n" << sp << BOLD << GREEN
-                    << "[\xe2\x9c\x94] Login successful! Welcome back, "
-                    << CYAN << user << GREEN << "!" << RESET << "\n\n";
-                return *res;
+                printLoginSuccess(user);
+            return *res;
 }
             std::cout << "\n" << sp << RED << BOLD
                       << "[\xe2\x9c\x96] Invalid username or password." << RESET << "\n\n";
@@ -1524,12 +1723,9 @@ if (choice == 0) {
         } else {
             auto res = registerUser(user, pass);
             if (res) {
-                printLoading("Setting up account");
-                std::cout << "\n" << sp << BOLD << GREEN
-                          << "[\xe2\x9c\x94] Account created! Welcome, "
-                          << CYAN << user << GREEN << "!" << RESET << "\n\n";
-                return *res;
-            }
+                printRegisterSuccess(user);
+            return *res;
+}       
             // ✅ show correct reason
             if (user.empty() || pass.empty())
                 std::cout << "\n" << sp << RED << BOLD
@@ -1546,6 +1742,8 @@ if (choice == 0) {
         }
     }
 }
+
+
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 int main() {
@@ -1583,10 +1781,13 @@ int main() {
             int choice = -1;
             try { choice = std::stoi(choiceStr); } catch (...) {}
             if (choice < 0 || choice > 4) {
-                std::cout << RED << BOLD << "  Please enter 0-4.\n" << RESET;
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                continue;
-            }
+            std::cout << RED << BOLD
+                      << centerPad("Invalid option! Please enter 0-4.")
+                      << RESET << "\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            system("cls");
+            continue;
+}
             switch (choice) {
                 case 1: adminViewUsers();       break;
                 case 2: adminViewAllCatalogs(); break;
@@ -1613,10 +1814,13 @@ int main() {
             int choice = -1;
             try { choice = std::stoi(choiceStr); } catch (...) {}
             if (choice < 0 || choice > 8) {
-                std::cout << RED << BOLD << "  Please enter 0-8.\n" << RESET;
+                std::cout << RED << BOLD
+                          << centerPad("Invalid option! Please enter 0-8.")
+                          << RESET << "\n";
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                system("cls");
                 continue;
-            }
+}
             switch (choice) {
                 case 1: doList(cat);      break;
                 case 2: doView(cat);      break;

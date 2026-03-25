@@ -2,19 +2,6 @@
   "entries": [
     {
       "director": "",
-      "genre": "2000",
-      "id": 2,
-      "imdbRating": "",
-      "notes": "h",
-      "plot": "",
-      "rating": 7.0,
-      "status": "pending",
-      "title": "kk",
-      "type": "movie",
-      "year": 2000
-    },
-    {
-      "director": "",
       "genre": "dfs",
       "id": 3,
       "imdbRating": "",
@@ -25,7 +12,20 @@
       "title": "dfj",
       "type": "movie",
       "year": 2000
+    },
+    {
+      "director": "",
+      "genre": "hf",
+      "id": 1,
+      "imdbRating": "",
+      "notes": "good",
+      "plot": "",
+      "rating": 7.0,
+      "status": "pending",
+      "title": "ks",
+      "type": "movie",
+      "year": 2000
     }
   ],
-  "nextId": 4
+  "nextId": 2
 }
