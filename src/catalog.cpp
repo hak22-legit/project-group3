@@ -32,6 +32,25 @@ static std::string pad(const std::string& s, int w) {
     return s + std::string(w - s.size(), ' ');
 }
 
+static std::vector<std::string> wrapText(const std::string& s, int width) {
+    std::vector<std::string> lines;
+    std::istringstream words(s);
+    std::string word, line;
+    while (words >> word) {
+        if (!line.empty() && (int)(line.size() + 1 + word.size()) > width) {
+            lines.push_back(line);
+            line = word;
+        } else {
+            if (!line.empty()) line += ' ';
+            line += word;
+        }
+    }
+    if (!line.empty()) lines.push_back(line);
+    if (lines.empty()) lines.push_back("");
+    return lines;
+}
+
+
 static std::string statusStr(const Entry& e) {
     if (e.type == MediaType::Movie)
         return e.status == WatchStatus::Done ? "Watched" : "Not Watched";
@@ -271,23 +290,40 @@ void printEntry(const Entry& e) {
     std::string typeColor   = (e.type == MediaType::Movie) ? MAGENTA : CYAN;
 
     auto printRow = [&](const std::string& label,
-                        const std::string& value,
-                        const std::string& labelColor,
-                        const std::string& valueColor) {
-        int labelPad = 12 - (int)label.size();
-        if (labelPad < 0) labelPad = 0;
-        int valuePad = 39 - (int)value.size();
-        if (valuePad < 0) valuePad = 0;
+                    const std::string& value,
+                    const std::string& labelColor,
+                    const std::string& valueColor) {
+    const int valueWidth = 39;
+    auto lines = wrapText(value, valueWidth);
+    int labelPad = 12 - (int)label.size();
+    if (labelPad < 0) labelPad = 0;
 
+    // First line: show the label
+    int valuePad = valueWidth - (int)lines[0].size();
+    if (valuePad < 0) valuePad = 0;
+    std::cout << sp
+              << MAGENTA << "║" << RESET
+              << " " << labelColor << BOLD << label << RESET
+              << std::string(labelPad, ' ')
+              << MAGENTA << "║" << RESET
+              << " " << valueColor << lines[0] << RESET
+              << std::string(valuePad, ' ')
+              << MAGENTA << "║" << RESET << "\n";
+
+    // Continuation lines: blank label column
+    for (int i = 1; i < (int)lines.size(); i++) {
+        int vp = valueWidth - (int)lines[i].size();
+        if (vp < 0) vp = 0;
         std::cout << sp
                   << MAGENTA << "║" << RESET
-                  << " " << labelColor << BOLD << label << RESET
-                  << std::string(labelPad, ' ')
+                  << std::string(13, ' ')   // label column blank
                   << MAGENTA << "║" << RESET
-                  << " " << valueColor << value << RESET
-                  << std::string(valuePad, ' ')
+                  << " " << valueColor << lines[i] << RESET
+                  << std::string(vp, ' ')
                   << MAGENTA << "║" << RESET << "\n";
-    };
+    }
+};
+
 
     std::cout << "\n";
 
