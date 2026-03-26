@@ -1896,6 +1896,8 @@ int main() {
     SetConsoleCP(CP_UTF8);
 #endif
     registerUser("admin", "admin123");
+    while (_getch() != '\r') {}
+    system("cls");
     printTitle();
 
     // std::cout << centerPad("Press Enter to continue...") << YELLOW << BOLD;

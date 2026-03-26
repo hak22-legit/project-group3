@@ -48,7 +48,7 @@ struct SearchResult {
     std::string imdbID;
     std::string title;
     std::string year;
-    std::string type;
+    std::string rating;
 };
 
 static std::optional<Entry> fetchByImdbID(httplib::Client& cli,
@@ -121,8 +121,25 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
         r.imdbID = item.value("imdbID", "");
         r.title  = item.value("Title",  "");
         r.year   = item.value("Year",   "");
-        r.type   = item.value("Type",   "");
-        if (!r.imdbID.empty()) results.push_back(r);
+        if (!r.imdbID.empty()) {
+            // fetch rating for each result
+            std::string detailPath = std::string("/?apikey=") + key
+                                   + "&i=" + r.imdbID
+                                   + "&r=json";
+            auto dres = cli.Get(detailPath.c_str());
+            if (dres && dres->status == 200) {
+                json dj;
+                try {
+                    dj = json::parse(dres->body);
+                    r.rating = dj.value("imdbRating", "N/A");
+                } catch (...) {
+                    r.rating = "N/A";
+                }
+            } else {
+                r.rating = "N/A";
+            }
+            results.push_back(r);
+        }
     }
 
     if (results.empty()) {
@@ -159,28 +176,28 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
                   << "+" << std::string(5,  fill)
                   << "+" << std::string(36, fill)
                   << "+" << std::string(7,  fill)
-                  << "+" << std::string(11, fill)
+                  << "+" << std::string(7,  fill)
                   << "+" << RESET << "\n";
     };
 
     auto rRow = [&](const std::string& num,
                     const std::string& title,
                     const std::string& year,
-                    const std::string& type,
+                    const std::string& rating,
                     const std::string& numColor,
                     const std::string& titleColor,
                     const std::string& yearColor,
-                    const std::string& typeColor,
+                    const std::string& ratingColor,
                     const std::string& borderColor) {
 
         auto titleLines = wrapText(title, 35);
 
         int np = 4  - (int)num.size();
         int yp = 6  - (int)year.size();
-        int xp = 10 - (int)type.size();
+        int rap = 6 - (int)rating.size();
         if (np < 0) np = 0;
         if (yp < 0) yp = 0;
-        if (xp < 0) xp = 0;
+        if (rap < 0) rap = 0;
 
         // first line
         int tp0 = 35 - (int)titleLines[0].size();
@@ -196,8 +213,8 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
                   << " " << yearColor << year << RESET
                   << std::string(yp, ' ')
                   << borderColor << "|" << RESET
-                  << " " << typeColor << type << RESET
-                  << std::string(xp, ' ')
+                  << " " << ratingColor << rating << RESET
+                  << std::string(rap, ' ')
                   << borderColor << "|" << RESET << "\n";
 
         // continuation lines
@@ -213,14 +230,14 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
                       << borderColor << "|" << RESET
                       << " " << std::string(6,  ' ')
                       << borderColor << "|" << RESET
-                      << " " << std::string(10, ' ')
+                      << " " << std::string(6, ' ')
                       << borderColor << "|" << RESET << "\n";
         }
     };
 
     std::cout << "\n";
     rHline('=', CYAN);
-    rRow("#", "Title", "Year", "Type",
+    rRow("#", "Title", "Year", "Rating",
          BOLD WHITE, BOLD WHITE, BOLD WHITE, BOLD WHITE, CYAN);
     rHline('=', CYAN);
     rRow("0", "Cancel", "-", "-",
@@ -230,7 +247,7 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
         rRow(std::to_string(i + 1),
              results[i].title,
              results[i].year,
-             results[i].type,
+             results[i].rating,
              CYAN, CYAN, YELLOW, GREEN, MAGENTA);
         if (i < (int)results.size() - 1)
             rHline('-', MAGENTA);
@@ -259,7 +276,7 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
             // reprint table after cls
             std::cout << "\n";
             rHline('=', CYAN);
-            rRow("#", "Title", "Year", "Type",
+            rRow("#", "Title", "Year", "Rating",
                  BOLD WHITE, BOLD WHITE, BOLD WHITE, BOLD WHITE, CYAN);
             rHline('=', CYAN);
             rRow("0", "Cancel", "-", "-",
@@ -269,7 +286,7 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
                 rRow(std::to_string(i + 1),
                      results[i].title,
                      results[i].year,
-                     results[i].type,
+                     results[i].rating,
                      CYAN, CYAN, YELLOW, GREEN, MAGENTA);
                 if (i < (int)results.size() - 1)
                     rHline('-', MAGENTA);
