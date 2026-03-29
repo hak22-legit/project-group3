@@ -267,10 +267,50 @@ static void doList(const Catalog& cat) {
         try {
             s = std::stoi(input);
             if (s >= 1 && s <= 3) break;
-        } catch (...) {}
-        std::cout << bp << RED << BOLD
-                  << "  Please enter 1, 2, or 3.\n" << RESET;
+        } catch (...) { s = -1; }
+
+        std::cout << "\n" << RED << BOLD
+                  << centerPad("Invalid option! Please enter 1, 2, or 3.")
+                  << RESET << "\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        system("cls");
+
+        // reprint ASCII and sort box after cls
+        std::cout << "\n" << CYAN << BOLD;
+        cl(" ██████╗ █████╗ ████████╗ █████╗ ██╗      ██████╗  ██████╗      ██╗     ██╗███████╗████████╗", 90);
+        cl("██╔════╝██╔══██╗╚══██╔══╝██╔══██╗██║     ██╔═══██╗██╔════╝      ██║     ██║██╔════╝╚══██╔══╝", 90);
+        cl("██║     ███████║   ██║   ███████║██║     ██║   ██║██║  ███╗     ██║     ██║███████╗   ██║   ", 90);
+        cl("██║     ██╔══██║   ██║   ██╔══██║██║     ██║   ██║██║   ██║     ██║     ██║╚════██║   ██║   ", 90);
+        cl("╚██████╗██║  ██║   ██║   ██║  ██║███████╗╚██████╔╝╚██████╔╝     ███████╗██║███████║   ██║   ", 90);
+        cl(" ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝     ╚══════╝╚═╝╚══════╝   ╚═╝   ", 90);
+        std::cout << RESET << "\n\n";
+
+        std::cout << bp << MAGENTA << "╔═══════════════════════════════════╗\n" << RESET;
+        std::cout << bp << MAGENTA << "║" << RESET
+                  << BOLD << YELLOW << "         Sort Options              " << RESET
+                  << MAGENTA << "║\n" << RESET;
+        std::cout << bp << MAGENTA << "╠═══════╦═══════════════════════════╣\n" << RESET;
+        std::cout << bp << MAGENTA << "║" << RESET
+                  << BOLD << CYAN   << "   1   " << RESET
+                  << MAGENTA << "║" << RESET
+                  << "   Sort by Title           "
+                  << MAGENTA << "║\n" << RESET;
+        std::cout << bp << MAGENTA << "╠═══════╬═══════════════════════════╣\n" << RESET;
+        std::cout << bp << MAGENTA << "║" << RESET
+                  << BOLD << CYAN   << "   2   " << RESET
+                  << MAGENTA << "║" << RESET
+                  << "   Sort by Year            "
+                  << MAGENTA << "║\n" << RESET;
+        std::cout << bp << MAGENTA << "╠═══════╬═══════════════════════════╣\n" << RESET;
+        std::cout << bp << MAGENTA << "║" << RESET
+                  << BOLD << CYAN   << "   3   " << RESET
+                  << MAGENTA << "║" << RESET
+                  << "   Sort by Rating          "
+                  << MAGENTA << "║\n" << RESET;
+        std::cout << bp << MAGENTA << "╚═══════╩═══════════════════════════╝\n" << RESET;
+        std::cout << "\n";
     }
+
     SortField sf = s == 1 ? SortField::Title : s == 2 ? SortField::Year : SortField::Rating;
 
     system("cls");
@@ -344,6 +384,10 @@ static void doView(Catalog& cat) {
     printEntry(*ep);
 
     // ── OMDb fetch ────────────────────────────────
+    auto reprintEntry = [&]() {
+        system("cls");
+        printEntry(*ep);
+    };
     if (ep->type == MediaType::Movie &&
         inputYN(centerPad("Fetch OMDb data for this entry?"))) {
         auto res = fetchOMDb(ep->title, ep->year);
