@@ -20,6 +20,7 @@
 #define MAGENTA  "\033[35m"
 #define CYAN     "\033[36m"
 #define WHITE    "\033[37m"
+#define BLACK       "\033[30m"
 
 // ─── Terminal Width Helper ────────────────────────────────────────────────────
 static int getTermWidthOMDb() {
@@ -238,7 +239,7 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
     std::cout << "\n";
     rHline('=', CYAN);
     rRow("#", "Title", "Year", "Rating",
-         BOLD WHITE, BOLD WHITE, BOLD WHITE, BOLD WHITE, CYAN);
+         BOLD BLACK, BOLD BLACK, BOLD BLACK, BOLD BLACK, CYAN);
     rHline('=', CYAN);
     rRow("0", "Cancel", "-", "-",
          RED, RED, RED, RED, MAGENTA);
@@ -277,7 +278,7 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
             std::cout << "\n";
             rHline('=', CYAN);
             rRow("#", "Title", "Year", "Rating",
-                 BOLD WHITE, BOLD WHITE, BOLD WHITE, BOLD WHITE, CYAN);
+                 BOLD BLACK, BOLD BLACK, BOLD BLACK, BOLD BLACK, CYAN);
             rHline('=', CYAN);
             rRow("0", "Cancel", "-", "-",
                  RED, RED, RED, RED, MAGENTA);
@@ -361,7 +362,7 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
 
         std::cout << "\n";
         pHline('=', CYAN);
-        pRow("Field",    "Value",                                   WHITE,   WHITE,   CYAN);
+        pRow("Field",    "Value",                                   BLACK,   BLACK,   CYAN);
         pHline('=', CYAN);
         pRow("Title",    entry->title,                              YELLOW,  CYAN,    MAGENTA);
         pHline('-', MAGENTA);
@@ -377,7 +378,7 @@ std::optional<Entry> fetchOMDb(const std::string& title, int year) {
                          ? "-" : entry->imdbRating,                 YELLOW,  GREEN,   MAGENTA);
         pHline('-', MAGENTA);
         pRow("Plot",     entry->plot.empty()
-                         ? "-" : entry->plot,                       YELLOW,  WHITE,   MAGENTA);
+                         ? "-" : entry->plot,                       YELLOW,  BLACK,   MAGENTA);
         pHline('=', CYAN);
         std::cout << "\n";
     }

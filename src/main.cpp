@@ -32,7 +32,7 @@
 #define WHITE       "\033[37m"
 #define BG_BLUE     "\033[44m"
 #define BG_GREY     "\033[100m"
-
+#define BLACK       "\033[30m"
 
 static int getTermWidth() {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -339,15 +339,12 @@ static void doView(Catalog& cat) {
 
     int termW = getTermWidth();
 
-    // ── cl lambda for ASCII art ───────────────────
     auto cl = [&](const std::string& s, int visualW) {
         int p = (termW - visualW) / 2;
         if (p < 0) p = 0;
         std::cout << std::string(p, ' ') << s << "\n";
     };
 
-    
-    // this reprints the ASCII header after cls on wrong input
     auto reprintHeader = [&]() {
         std::cout << "\n" << GREEN << BOLD;
         cl("██╗   ██╗██╗███████╗██╗    ██╗    ███████╗███╗   ██╗████████╗██████╗ ██╗   ██╗", 80);
@@ -357,9 +354,29 @@ static void doView(Catalog& cat) {
         cl(" ╚████╔╝ ██║███████╗╚███╔███╔╝    ███████╗██║ ╚████║   ██║   ██║  ██║   ██║   ", 80);
         cl("  ╚═══╝  ╚═╝╚══════╝ ╚══╝╚══╝     ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   ", 80);
         std::cout << RESET << "\n";
+
+        int tw  = getTermWidth();
+        int bw  = 40;
+        int bp2 = (tw - bw) / 2;
+        if (bp2 < 0) bp2 = 0;
+        std::string bsp = std::string(bp2, ' ');
+
+        std::cout << "\n";
+        std::cout << bsp << CYAN << "+" << std::string(44, '=') << "+" << RESET << "\n";
+        std::cout << bsp << CYAN << "|" << RESET
+                  << BOLD << YELLOW << "   Enter Movie ID to View                   " << RESET
+                  << CYAN << "|" << RESET << "\n";
+        std::cout << bsp << CYAN << "+" << std::string(15, '-')
+                  << "+" << std::string(28, '-') << "+" << RESET << "\n";
+        std::cout << bsp << CYAN << "|" << RESET
+                  << " " << BLUE << BOLD << "Entry ID      " << RESET
+                  << CYAN << "|" << RESET
+                  << " " << BLACK << "Enter the movie ID number" << RESET
+                  << "  " << CYAN << "|" << RESET << "\n";
+        std::cout << bsp << CYAN << "+" << std::string(44, '=') << "+" << RESET << "\n\n";
     };
 
-    // ── print ASCII header first time ─────────────
+    // ── print header once — box is inside reprintHeader ──
     reprintHeader();
 
     int id = inputInt(centerPad("Entry ID: "), 1, 99999, reprintHeader);
@@ -389,7 +406,7 @@ static void doView(Catalog& cat) {
         printEntry(*ep);
     };
     if (ep->type == MediaType::Movie &&
-        inputYN(centerPad("Fetch OMDb data for this entry?"))) {
+        inputYN(centerPad("Fetch OMDb data for this entry?"), reprintEntry)) {
         auto res = fetchOMDb(ep->title, ep->year);
         if (res) {
             ep->director   = res->director;
@@ -461,7 +478,7 @@ static void doAdd(Catalog& cat) {
                   << " " << fieldColor << BOLD << field << RESET
                   << std::string(fp, ' ')
                   << MAGENTA << "|" << RESET
-                  << " " << WHITE << desc << RESET
+                  << " " << BLUE << desc << RESET
                   << std::string(dp, ' ')
                   << MAGENTA << "|" << RESET << "\n";
     };
@@ -469,17 +486,17 @@ static void doAdd(Catalog& cat) {
     hlineForm("+", "+", "+", '=');
     formRow("Field",   "Description",              CYAN);
     hlineForm("+", "+", "+", '=');
-    formRow("Title",   "Enter movie title",         YELLOW);
+    formRow("Title",   "Enter movie title",         GREEN);
     hlineForm("+", "+", "+", '-');
-    formRow("Genre",   "e.g. Action, Sci-Fi, Drama", YELLOW);
+    formRow("Genre",   "e.g. Action, Sci-Fi, Drama", GREEN);
     hlineForm("+", "+", "+", '-');
-    formRow("Year",    "1888 - 2100",               YELLOW);
+    formRow("Year",    "1888 - 2100",               GREEN);
     hlineForm("+", "+", "+", '-');
-    formRow("Rating",  "1.0 - 10.0",               YELLOW);
+    formRow("Rating",  "1.0 - 10.0",               GREEN);
     hlineForm("+", "+", "+", '-');
-    formRow("Notes",   "Any personal notes",        YELLOW);
+    formRow("Notes",   "Any personal notes",        GREEN);
     hlineForm("+", "+", "+", '-');
-    formRow("Status",  "Watched / Not Watched",     YELLOW);
+    formRow("Status",  "Watched / Not Watched",     GREEN);
     hlineForm("+", "+", "+", '=');
     std::cout << "\n";
 
@@ -520,7 +537,7 @@ static void doAdd(Catalog& cat) {
         if (fp < 0) fp = 0;
         if (vp < 0) vp = 0;
         std::cout << sp2 << CYAN << "|" << RESET
-                  << " " << YELLOW << BOLD << field << RESET
+                  << " " << BLUE << BOLD << field << RESET
                   << std::string(fp, ' ')
                   << CYAN << "|" << RESET
                   << " " << valueColor << value << RESET
@@ -541,21 +558,21 @@ static void doAdd(Catalog& cat) {
     hlineSum("+", "+", "+", '=');
     sumRow("Field",   "Value",                          CYAN);
     hlineSum("+", "+", "+", '=');
-    sumRow("ID",      std::to_string(cat.entries.back().id), WHITE);
+    sumRow("ID",      std::to_string(cat.entries.back().id), BLACK);
     hlineSum("+", "+", "+", '-');
-    sumRow("Title",   e.title,                          WHITE);
+    sumRow("Title",   e.title,                          BLACK);
     hlineSum("+", "+", "+", '-');
     sumRow("Type",    "Movie",                          MAGENTA);
     hlineSum("+", "+", "+", '-');
-    sumRow("Genre",   e.genre.empty() ? "-" : e.genre, WHITE);
+    sumRow("Genre",   e.genre.empty() ? "-" : e.genre, BLACK);
     hlineSum("+", "+", "+", '-');
-    sumRow("Year",    std::to_string(e.year),           WHITE);
+    sumRow("Year",    std::to_string(e.year),           BLACK);
     hlineSum("+", "+", "+", '-');
     sumRow("Rating",  std::to_string((int)e.rating) + "/10", ratingColor);
     hlineSum("+", "+", "+", '-');
     sumRow("Status",  st,                               statusColor);
     hlineSum("+", "+", "+", '-');
-    sumRow("Notes",   e.notes.empty() ? "-" : e.notes, WHITE);
+    sumRow("Notes",   e.notes.empty() ? "-" : e.notes, BLACK);
     hlineSum("+", "+", "+", '=');
     std::cout << "\n";
 
@@ -597,7 +614,7 @@ static void doEdit(Catalog& cat) {
     if (!ep) {
         std::cout << "\n" << RED << BOLD
                   << centerPad("Entry not found.") << RESET << "\n\n";
-        std::cout << YELLOW << BOLD
+        std::cout << BLUE << BOLD
                   << centerPad("Press Enter to go back...") << RESET;
         while (_getch() != '\r') {}
         system("cls");
@@ -615,7 +632,7 @@ static void doEdit(Catalog& cat) {
     if (bpad < 0) bpad = 0;
     std::string bp = std::string(bpad, ' ');
 
-    std::cout << bp << YELLOW << BOLD
+    std::cout << bp << BLUE << BOLD
               << "Press Enter to keep existing value.\n\n" << RESET;
 
     Entry updated = *ep;
@@ -630,7 +647,7 @@ static void doEdit(Catalog& cat) {
 
     // ── field border helpers ──────────────────────
     auto hline = [&](char fill) {
-        std::cout << bp << MAGENTA
+        std::cout << bp << BLUE
                   << "+" << std::string(16, fill)
                   << "+" << std::string(34, fill)
                   << "+" << RESET << "\n";
@@ -642,13 +659,13 @@ static void doEdit(Catalog& cat) {
         int vp = 33 - (int)current.size();
         if (lp < 0) lp = 0;
         if (vp < 0) vp = 0;
-        std::cout << bp << MAGENTA << "|" << RESET
-                  << " " << YELLOW << BOLD << label << RESET
+        std::cout << bp << BLUE << "|" << RESET
+                  << " " << BLUE << BOLD << label << RESET
                   << std::string(lp, ' ')
-                  << MAGENTA << "|" << RESET
-                  << " " << CYAN << current << RESET
+                  << BLUE << "|" << RESET
+                  << " " << BLACK << current << RESET
                   << std::string(vp, ' ')
-                  << MAGENTA << "|" << RESET << "\n";
+                  << BLUE << "|" << RESET << "\n";
     };
 
     // ── Title ─────────────────────────────────────
@@ -722,7 +739,7 @@ static void doEdit(Catalog& cat) {
                   << centerPad("Update failed.") << RESET << "\n";
     }
 
-    std::cout << "\n" << YELLOW << BOLD
+    std::cout << "\n" << BLUE << BOLD
               << centerPad("Press Enter to go back to main menu...") << RESET;
     while (_getch() != '\r') {}
     system("cls");
@@ -850,25 +867,25 @@ static void doOMDb(Catalog& cat) {
     if (bpad < 0) bpad = 0;
     std::string bp = std::string(bpad, ' ');
 
-    std::cout << bp << MAGENTA << "+" << std::string(50, '=') << "+" << RESET << "\n";
-    std::cout << bp << MAGENTA << "|" << RESET
-              << BOLD << YELLOW << "              Search Information                  " << RESET
-              << MAGENTA << "|" << RESET << "\n";
-    std::cout << bp << MAGENTA << "+" << std::string(16, '-')
+    std::cout << bp << BLUE << "+" << std::string(50, '=') << "+" << RESET << "\n";
+    std::cout << bp << BLUE << "|" << RESET
+              << BOLD << BLACK << "              Search Information                  " << RESET
+              << BLUE << "|" << RESET << "\n";
+    std::cout << bp << BLUE << "+" << std::string(16, '-')
               << "+" << std::string(33, '-') << "+" << RESET << "\n";
-    std::cout << bp << MAGENTA << "|" << RESET
-              << " " << YELLOW << BOLD << "Title          " << RESET
-              << MAGENTA << "|" << RESET
-              << " " << WHITE  << "Enter movie title to search     " << RESET
-              << MAGENTA << "|" << RESET << "\n";
-    std::cout << bp << MAGENTA << "+" << std::string(16, '-')
+    std::cout << bp << BLUE << "|" << RESET
+              << " " << BLUE << BOLD << "Title          " << RESET
+              << BLUE << "|" << RESET
+              << " " << BLACK  << "Enter movie title to search     " << RESET
+              << BLUE << "|" << RESET << "\n";
+    std::cout << bp << BLUE << "+" << std::string(16, '-')
               << "+" << std::string(33, '-') << "+" << RESET << "\n";
-    std::cout << bp << MAGENTA << "|" << RESET
-              << " " << YELLOW << BOLD << "Year           " << RESET
-              << MAGENTA << "|" << RESET
-              << " " << WHITE  << "Release year or 0 to skip       " << RESET
-              << MAGENTA << "|" << RESET << "\n";
-    std::cout << bp << MAGENTA << "+" << std::string(50, '=') << "+" << RESET << "\n\n";
+    std::cout << bp << BLUE << "|" << RESET
+              << " " << BLUE << BOLD << "Year           " << RESET
+              << BLUE << "|" << RESET
+              << " " << BLACK  << "Release year or 0 to skip       " << RESET
+              << BLUE << "|" << RESET << "\n";
+    std::cout << bp << BLUE << "+" << std::string(50, '=') << "+" << RESET << "\n\n";
 
     // ── inputs ────────────────────────────────────
     std::string title = inputLine(centerPad("Title : "), false, reprintHeader);
@@ -881,12 +898,11 @@ static void doOMDb(Catalog& cat) {
     int smpad = (termW - (int)searchMsg.size()) / 2;
     if (smpad < 0) smpad = 0;
     std::cout << "\n" << std::string(smpad, ' ')
-              << CYAN << BOLD << searchMsg << RESET << "\n\n";
+              << BLUE << BOLD << searchMsg << RESET << "\n\n";
 
     auto res = fetchOMDb(title, year);
 
     // ── recalculate center for result boxes ───────
-    // box width = 1 + 16 + 1 + 51 + 1 = 70
     int resultBoxW = 70;
     int rbpad = (termW - resultBoxW) / 2;
     if (rbpad < 0) rbpad = 0;
@@ -921,7 +937,7 @@ static void doOMDb(Catalog& cat) {
                   << std::string(nrp, ' ')
                   << RED << "|" << RESET << "\n";
         std::cout << rbp << RED << "+" << std::string(68, '=') << "+" << RESET << "\n\n";
-        std::cout << YELLOW << BOLD
+        std::cout << BLUE << BOLD
                   << centerPad("Press Enter to go back to main menu...") << RESET;
         while (_getch() != '\r') {}
         system("cls");
@@ -944,24 +960,24 @@ static void doOMDb(Catalog& cat) {
         // first line
         int vp0 = 50 - (int)valueLines[0].size();
         if (vp0 < 0) vp0 = 0;
-        std::cout << rbp << CYAN << "|" << RESET
-                  << " " << YELLOW << BOLD << label << RESET
+        std::cout << rbp << BLUE << "|" << RESET
+                  << " " << BLUE << BOLD << label << RESET
                   << std::string(lp, ' ')
-                  << CYAN << "|" << RESET
+                  << BLUE << "|" << RESET
                   << " " << valueColor << valueLines[0] << RESET
                   << std::string(vp0, ' ')
-                  << CYAN << "|" << RESET << "\n";
+                  << BLUE << "|" << RESET << "\n";
 
         // continuation lines
         for (int i = 1; i < (int)valueLines.size(); i++) {
             int vp = 50 - (int)valueLines[i].size();
             if (vp < 0) vp = 0;
-            std::cout << rbp << CYAN << "|" << RESET
+            std::cout << rbp << BLUE << "|" << RESET
                       << " " << std::string(15, ' ')
-                      << CYAN << "|" << RESET
+                      << BLUE << "|" << RESET
                       << " " << valueColor << valueLines[i] << RESET
                       << std::string(vp, ' ')
-                      << CYAN << "|" << RESET << "\n";
+                      << BLUE << "|" << RESET << "\n";
         }
     };
 
@@ -969,26 +985,26 @@ static void doOMDb(Catalog& cat) {
     std::string rat = res->imdbRating.empty() ? "-" : res->imdbRating;
 
     std::cout << "\n";
-    std::cout << rbp << CYAN << "+" << std::string(68, '=') << "+" << RESET << "\n";
-    std::cout << rbp << CYAN << "|" << RESET
-              << BOLD << CYAN
+    std::cout << rbp << BLUE << "+" << std::string(68, '=') << "+" << RESET << "\n";
+    std::cout << rbp << BLUE << "|" << RESET
+              << BOLD << BLACK
               << "                    Search Result                    "
               << "               " << RESET
-              << CYAN << "|" << RESET << "\n";
-    std::cout << rbp << CYAN << "+" << std::string(16, '-')
+              << BLUE << "|" << RESET << "\n";
+    std::cout << rbp << BLUE << "+" << std::string(16, '-')
               << "+" << std::string(51, '-') << "+" << RESET << "\n";
-    resultRow("Title",    res->title,                              WHITE);
-    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
-    resultRow("Year",     yr,                                      WHITE);
-    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
-    resultRow("Genre",    res->genre.empty()    ? "-" : res->genre,    WHITE);
-    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
-    resultRow("Director", res->director.empty() ? "-" : res->director, CYAN);
-    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Title",    res->title,                              BLACK);
+    std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Year",     yr,                                      BLACK);
+    std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Genre",    res->genre.empty()    ? "-" : res->genre,    BLACK);
+    std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Director", res->director.empty() ? "-" : res->director, BLUE);
+    std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
     resultRow("IMDb",     rat,                                          GREEN);
-    std::cout << rbp << CYAN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
-    resultRow("Plot",     res->plot.empty() ? "-" : res->plot,         DIM);
-    std::cout << rbp << CYAN << "+" << std::string(68, '=') << "+" << RESET << "\n\n";
+    std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+    resultRow("Plot",     res->plot.empty() ? "-" : res->plot,         BLACK);
+    std::cout << rbp << BLUE << "+" << std::string(68, '=') << "+" << RESET << "\n\n";
 
     // ── add to catalog ────────────────────────────
     if (inputYN(centerPad("Add to catalog?"), reprintHeader)) {
@@ -1017,58 +1033,57 @@ static void doOMDb(Catalog& cat) {
                           const std::string& value,
                           const std::string& valueColor) {
             auto valueLines = wrapText(value, 50);
-
             int lp  = 15 - (int)label.size();
             if (lp < 0) lp = 0;
 
             // first line
             int vp0 = 50 - (int)valueLines[0].size();
             if (vp0 < 0) vp0 = 0;
-            std::cout << rbp << GREEN << "|" << RESET
-                      << " " << YELLOW << BOLD << label << RESET
+            std::cout << rbp << BLUE << "|" << RESET
+                      << " " << BLUE << BOLD << label << RESET
                       << std::string(lp, ' ')
-                      << GREEN << "|" << RESET
+                      << BLUE << "|" << RESET
                       << " " << valueColor << valueLines[0] << RESET
                       << std::string(vp0, ' ')
-                      << GREEN << "|" << RESET << "\n";
+                      << BLUE << "|" << RESET << "\n";
 
             // continuation lines
             for (int i = 1; i < (int)valueLines.size(); i++) {
                 int vp = 50 - (int)valueLines[i].size();
                 if (vp < 0) vp = 0;
-                std::cout << rbp << GREEN << "|" << RESET
+                std::cout << rbp << BLUE << "|" << RESET
                           << " " << std::string(15, ' ')
-                          << GREEN << "|" << RESET
+                          << BLUE << "|" << RESET
                           << " " << valueColor << valueLines[i] << RESET
                           << std::string(vp, ' ')
-                          << GREEN << "|" << RESET << "\n";
+                          << BLUE << "|" << RESET << "\n";
             }
         };
 
-        std::cout << rbp << GREEN << "+" << std::string(68, '=') << "+" << RESET << "\n";
-        std::cout << rbp << GREEN << "|" << RESET
-                  << BOLD << GREEN
+        std::cout << rbp << BLUE << "+" << std::string(68, '=') << "+" << RESET << "\n";
+        std::cout << rbp << BLUE << "|" << RESET
+                  << BOLD << BLACK
                   << "                    Entry Summary                    "
                   << "               " << RESET
-                  << GREEN << "|" << RESET << "\n";
-        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
-        sumRow("ID",     std::to_string(cat.entries.back().id),  WHITE);
-        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
-        sumRow("Title",  e.title,                                WHITE);
-        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
-        sumRow("Genre",  e.genre.empty() ? "-" : e.genre,       WHITE);
-        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
-        sumRow("Year",   yr,                                     WHITE);
-        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+                  << BLUE << "|" << RESET << "\n";
+        std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("ID",     std::to_string(cat.entries.back().id),  BLACK);
+        std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Title",  e.title,                                BLACK);
+        std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Genre",  e.genre.empty() ? "-" : e.genre,       BLACK);
+        std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Year",   yr,                                     BLACK);
+        std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
         sumRow("Rating", std::to_string((int)e.rating) + "/10", ratingColor);
-        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
         sumRow("Status", st,                                     statusColor);
-        std::cout << rbp << GREEN << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
-        sumRow("Notes",  e.notes.empty() ? "-" : e.notes,       WHITE);
-        std::cout << rbp << GREEN << "+" << std::string(68, '=') << "+" << RESET << "\n\n";
+        std::cout << rbp << BLUE << "+" << std::string(16, '-') << "+" << std::string(51, '-') << "+" << RESET << "\n";
+        sumRow("Notes",  e.notes.empty() ? "-" : e.notes,       BLACK);
+        std::cout << rbp << BLUE << "+" << std::string(68, '=') << "+" << RESET << "\n\n";
     }
 
-    std::cout << YELLOW << BOLD
+    std::cout << BLUE << BOLD
               << centerPad("Press Enter to go back to main menu...") << RESET;
     while (_getch() != '\r') {}
     system("cls");
@@ -1087,7 +1102,7 @@ static void doStats(const Catalog& cat) {
 
     // ── ASCII STATISTICS ──────────────────────────
     auto reprintHeader = [&]() {
-        std::cout << "\n" << YELLOW << BOLD;
+        std::cout << "\n" << MAGENTA << BOLD;
         cl("███████╗████████╗ █████╗ ████████╗██╗███████╗████████╗██╗ ██████╗███████╗", 74);
         cl("██╔════╝╚══██╔══╝██╔══██╗╚══██╔══╝██║██╔════╝╚══██╔══╝██║██╔════╝██╔════╝", 74);
         cl("███████╗   ██║   ███████║   ██║   ██║███████╗   ██║   ██║██║     ███████╗", 74);
@@ -1110,7 +1125,7 @@ static void doStats(const Catalog& cat) {
     }
 
     auto pressEnter = [&](const std::string& msg = "Press Enter to continue...") {
-        std::cout << "\n" << YELLOW << BOLD << centerPad(msg) << RESET;
+        std::cout << "\n" << GREEN << BOLD << centerPad(msg) << RESET;
         while (_getch() != '\r') {}
         system("cls");
         reprintHeader();
@@ -1152,7 +1167,7 @@ static void doStats(const Catalog& cat) {
         if (lp < 0) lp = 0;
         if (vp < 0) vp = 0;
         std::cout << bp << MAGENTA << "|" << RESET
-                  << " " << YELLOW << BOLD << label << RESET
+                  << " " << BLUE << BOLD << label << RESET
                   << std::string(lp, ' ')
                   << MAGENTA << "|" << RESET
                   << " " << valueColor << value << RESET
@@ -1161,9 +1176,9 @@ static void doStats(const Catalog& cat) {
     };
 
     // ── 1. Overview ──────────────────────────────────
-    std::cout << "\n" << bp << BOLD << YELLOW << "1. Overview" << RESET << "\n";
+    std::cout << "\n" << bp << BOLD << RED << "1. Overview" << RESET << "\n";
     hline('=');
-    srow("Stat", "Value", WHITE);
+    srow("Stat", "Value", DIM);
     hline('=');
     srow("Total Entries",  std::to_string(total),                             CYAN);
     hline('-');
@@ -1173,13 +1188,13 @@ static void doStats(const Catalog& cat) {
     hline('-');
     srow("Average Rating", std::to_string(avgRating).substr(0,4) + " / 10",  GREEN);
     hline('-');
-    srow("Highest Rated",  topTitle + " (" + std::to_string(maxRating).substr(0,3) + ")", YELLOW);
+    srow("Highest Rated",  topTitle + " (" + std::to_string(maxRating).substr(0,3) + ")", BLUE);
     hline('=');
 
     pressEnter();
 
     // ── 2. Watch Progress ────────────────────────────
-    std::cout << "\n" << bp << BOLD << YELLOW << "2. Watch Progress" << RESET << "\n\n";
+    std::cout << "\n" << bp << BOLD << RED << "2. Watch Progress" << RESET << "\n\n";
 
     int pct    = total > 0 ? (watched * 100) / total : 0;
     int filled = (pct * 30) / 100;
@@ -1195,7 +1210,7 @@ static void doStats(const Catalog& cat) {
     pressEnter();
 
     // ── 3. Top 5 Rated ───────────────────────────────
-    std::cout << "\n" << bp << BOLD << YELLOW << "3. Top 5 Rated" << RESET << "\n\n";
+    std::cout << "\n" << bp << BOLD << RED << "3. Top 5 Rated" << RESET << "\n\n";
 
     auto sorted = cat.entries;
     std::sort(sorted.begin(), sorted.end(), [](const Entry& a, const Entry& b){
@@ -1235,7 +1250,7 @@ static void doStats(const Catalog& cat) {
     };
 
     tHline('=');
-    tRow("Rank", "Title", "Type", "Rating", WHITE);
+    tRow("Rank", "Title", "Type", "Rating", BLUE);
     tHline('=');
     int limit = std::min((int)sorted.size(), 5);
     for (int i = 0; i < limit; i++) {
@@ -1253,7 +1268,7 @@ static void doStats(const Catalog& cat) {
     pressEnter();
 
     // ── 4. Rating Distribution ───────────────────────
-    std::cout << "\n" << bp << BOLD << YELLOW << "4. Rating Distribution" << RESET << "\n\n";
+    std::cout << "\n" << bp << BOLD << RED << "4. Rating Distribution" << RESET << "\n\n";
 
     int cnt1=0, cnt2=0, cnt3=0, cnt4=0;
     for (const auto& e : cat.entries) {
@@ -1590,7 +1605,7 @@ static void printAdminMenu() {
     };
 
     hline('=');
-    row("Key", "Option", WHITE);
+    row("Key", "Option", BLACK);
     hline('=');
     row("1", "View all users",         CYAN);
     hline('-');
@@ -1656,7 +1671,7 @@ static void printMenu(const std::string& username) {
     };
 
     hline('=');
-    row("Key", "Option", "Description", WHITE);
+    row("Key", "Option", "Description", BLUE);
     hline('=');
     row("1", "List",   "Browse your catalog",  CYAN);
     hline('-');

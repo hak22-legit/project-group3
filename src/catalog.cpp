@@ -21,6 +21,7 @@
 #define CYAN        "\033[36m"
 #define MAGENTA     "\033[35m"
 #define WHITE       "\033[37m"
+#define BLACK       "\033[30m"
 
 static std::string lower(std::string s) {
     for (char& c : s) c = (char)std::tolower(c);
@@ -207,8 +208,8 @@ void printTable(const std::vector<Entry>& entries, const std::string& label) {
     hline("=", CYAN);
     printRow("ID", "Title", "Genre", "Year", "Rating", "Status",
              CYAN,
-             BOLD WHITE, BOLD WHITE, BOLD WHITE, BOLD WHITE,
-             BOLD WHITE, BOLD WHITE);
+             BOLD CYAN, BOLD CYAN, BOLD CYAN, BOLD CYAN,
+             BOLD CYAN, BOLD CYAN);
     hline("=", CYAN);
 
     for (int i = 0; i < (int)entries.size(); i++) {
@@ -217,7 +218,7 @@ void printTable(const std::vector<Entry>& entries, const std::string& label) {
         std::string yr  = e.year   > 0 ? std::to_string(e.year) : "-";
         std::string st  = statusStr(e);
 
-        std::string rowColor    = (i % 2 == 0) ? YELLOW : WHITE;
+        std::string rowColor    = (i % 2 == 0) ? YELLOW : CYAN;
         std::string typeColor   = (e.type == MediaType::Movie) ? MAGENTA : CYAN;
         std::string ratingColor;
         if      (e.rating >= 7.0f) ratingColor = GREEN;
@@ -364,9 +365,9 @@ void printEntry(const Entry& e) {
     divider();
     printRow("Type",     e.type == MediaType::Movie ? "Movie" : "Book", YELLOW, typeColor);
     divider();
-    printRow("Genre",    e.genre.empty()      ? "-" : e.genre,      YELLOW, WHITE);
+    printRow("Genre",    e.genre.empty()      ? "-" : e.genre,      YELLOW, BLACK);
     divider();
-    printRow("Year",     yr,                                          YELLOW, WHITE);
+    printRow("Year",     yr,                                          YELLOW, BLACK);
     divider();
     printRow("Rating",   rat,                                         YELLOW, ratingColor);
     divider();
@@ -376,7 +377,7 @@ void printEntry(const Entry& e) {
     divider();
     printRow("IMDb",     e.imdbRating.empty() ? "-" : e.imdbRating, YELLOW, GREEN);
     divider();
-    printRow("Notes",    e.notes.empty()      ? "-" : e.notes,      YELLOW, WHITE);
+    printRow("Notes",    e.notes.empty()      ? "-" : e.notes,      YELLOW, BLACK);
     divider();
     // ── Plot: word-wrapped across multiple rows ───────────────────────────────
     printPlotRow("Plot", e.plot, YELLOW, DIM);
